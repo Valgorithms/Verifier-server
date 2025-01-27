@@ -11,6 +11,8 @@ Verifier-Server is a web server designed to handle BYOND user verification. It s
 - Handles GET and POST requests for user verification.
 - Supports both filesystem and SQL (SQLite/MySQL) storage.
 - Configurable via `.env` file.
+- Verbose mode for detailed request and response logging.
+- Graceful shutdown support on non-Windows systems with `pcntl` extension.
 
 ## Installation
 
@@ -44,7 +46,7 @@ Verifier-Server is a web server designed to handle BYOND user verification. It s
     #DB_OPTIONS=
 
     # MySQL configuration
-    DB_DSN=mysql:host=127.0.0.1;port=3307;dbname=verify_list
+    DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=verify_list
     DB_PORT=3306
     DB_USERNAME=your_username
     DB_PASSWORD=your_password

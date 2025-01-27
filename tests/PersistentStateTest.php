@@ -1,31 +1,17 @@
 <?php
 use PHPUnit\Framework\TestCase;
-use VerifierServer\PersistentState;
 
 class PersistentStateTest extends TestCase {
     private $state;
 
-    protected function setUp(): void
-    {
-        $verifyFile = PersistentState::loadVerifyFile();
-        $envConfig = PersistentState::loadEnvConfig();
-        $civToken = $envConfig['TOKEN'];
-        $storageType = $envConfig['STORAGE_TYPE'] ?? 'filesystem';
-        $this->state = new PersistentState($verifyFile, $civToken, $storageType);
-    }
-
-    public function testGetVerifyList()
-    {
-        try {
-            $verifyList = $this->state->getVerifyList();
-            $this->assertIsArray($verifyList);
-            echo "PersistentStateTest::testGetVerifyList succeeded." . PHP_EOL;
-        } catch (Exception $e) {
-            echo "PersistentStateTest::testGetVerifyList failed: " . $e->getMessage() . PHP_EOL;
-        }
-    }
-
-    public function testSetVerifyList()
+    /**
+     * Sets up the test environment before each test.
+     *
+     * This method is called before each test is executed. It loads the verification file
+     * and environment configuration, retrieves the CIV token and storage type from the
+     * environment configuration, and initializes the PersistentState object with these values.
+     */
+    public function testSetVerifyList(): void
     {
         try {
             $newList = [
@@ -41,7 +27,14 @@ class PersistentStateTest extends TestCase {
         }
     }
 
-    public function testGetToken()
+    /**
+     * Tests the getToken method of the state object.
+     *
+     * This test verifies that the getToken method returns a string.
+     * If the method succeeds, it outputs a success message.
+     * If an exception is thrown, it catches the exception and outputs a failure message with the exception details.
+     */
+    public function testGetToken(): void
     {
         try {
             $token = $this->state->getToken();

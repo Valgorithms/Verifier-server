@@ -4,17 +4,18 @@ namespace VerifierServer;
 use Dotenv\Dotenv;
 
 class PersistentState {
-    private $verifyList;
-    private $civToken;
-    private $storageType;
-    private $pdo;
+    private \PDO $pdo;
 
-    public function __construct($verifyFile, $civToken, $storageType = 'filesystem') {
-        $this->verifyList = $verifyFile;
+
+    public function __construct(
+        private string $civToken,
+        private array $verifyList = [],
+        private string $storageType = 'filesystem'
+    ) {
         $this->civToken = $civToken;
         $this->storageType = $storageType;
 
-        if ($this->storageType === 'sql') {
+        if ($this->storageType !== 'filesystem') {
             $env = self::loadEnvConfig();
             $dsn = $env['DB_DSN'];
             $username = $env['DB_USERNAME'];
@@ -25,57 +26,165 @@ class PersistentState {
         }
     }
 
-    private function initializeDatabase() {
+    /**
+     * Initializes the database by creating the `verify_list` table if it does not already exist.
+     * The table schema differs based on the database driver (MySQL or others).
+     *
+     * For MySQL:
+     * - id: INT, AUTO_INCREMENT, PRIMARY KEY
+     * - ss13: VARCHAR(255)
+     * - discord: VARCHAR(255)
+     * - create_time: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
+     *
+     * For other databases:
+     * - id: INTEGER, PRIMARY KEY
+     * - ss13: TEXT
+     * - discord: TEXT
+     * - create_time: TEXT
+     *
+     * @throws \PDOException if the table creation fails.
+     */
+    private function initializeDatabase(): void
+    {
         if (strpos($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME), 'mysql') !== false) {
-            $this->pdo->exec("CREATE TABLE IF NOT EXISTS verify_list (
+            if ($this->pdo->exec("CREATE TABLE IF NOT EXISTS verify_list (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 ss13 VARCHAR(255),
                 discord VARCHAR(255),
                 create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )");
+            )") === false) {
+                $errorInfo = $this->pdo->errorInfo();
+                throw new \PDOException("Failed to create table: " . implode(", ", $errorInfo));
+            }
         } else {
-            $this->pdo->exec("CREATE TABLE IF NOT EXISTS verify_list (
+            if ($this->pdo->exec("CREATE TABLE IF NOT EXISTS verify_list (
                 id INTEGER PRIMARY KEY,
                 ss13 TEXT,
                 discord TEXT,
                 create_time TEXT
-            )");
-        }
-    }
-
-    public function getVerifyList() {
-        if ($this->storageType === 'sql') {
-            $stmt = $this->pdo->query("SELECT * FROM verify_list");
-            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        }
-        return $this->verifyList;
-    }
-
-    public function setVerifyList($list) {
-        if ($this->storageType === 'sql') {
-            $this->pdo->exec("DELETE FROM verify_list");
-            $stmt = $this->pdo->prepare("INSERT INTO verify_list (ss13, discord, create_time) VALUES (:ss13, :discord, :create_time)");
-            foreach ($list as $item) {
-                $stmt->execute($item);
+            )") === false) {
+                $errorInfo = $this->pdo->errorInfo();
+                throw new \PDOException("Failed to create table: " . implode(", ", $errorInfo));
             }
-        } else {
-            $this->verifyList = $list;
         }
     }
 
-    public function getToken() {
+    /**
+     * Retrieves the verification list.
+     *
+     * This method fetches the verification list from either the filesystem or the database,
+     * depending on the configured storage type.
+     *
+     * @return array The verification list.
+     *
+     * @throws \PDOException If there is an error executing the query or fetching the data from the database.
+     */
+    public function getVerifyList(): array
+    {
+        if ($this->storageType === 'filesystem') {
+            return $this->verifyList;
+        }
+        $stmt = $this->pdo->query("SELECT * FROM verify_list");
+        if ($stmt === false) {
+            $errorInfo = $this->pdo->errorInfo();
+            throw new \PDOException("Failed to execute query: " . implode(", ", $errorInfo));
+        }
+        $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        if ($result === false) {
+            $errorInfo = $this->pdo->errorInfo();
+            throw new \PDOException("Failed to fetch data: " . implode(", ", $errorInfo));
+        }
+        return $result;
+    }
+
+    /**
+     * Sets the verification list.
+     *
+     * This method updates the verification list based on the storage type. If the storage type is 'filesystem',
+     * it simply assigns the provided list to the verifyList property. If the storage type is not 'filesystem',
+     * it updates the verify_list table in the database.
+     *
+     * @param array $list The list of verification items to be set. Each item in the list should be an associative array
+     *                    with keys 'ss13', 'discord', and 'create_time'.
+     * 
+     * @throws \PDOException If there is an error deleting from the verify_list table, preparing the insert statement,
+     *                       or executing the insert statement.
+     */
+    public function setVerifyList(array $list): void
+    {
+        if ($this->storageType === 'filesystem') {
+            $this->verifyList = $list;
+            return;
+        }
+        if ($this->pdo->exec("DELETE FROM verify_list") === false) {
+            $errorInfo = $this->pdo->errorInfo();
+            throw new \PDOException("Failed to delete from verify_list: " . implode(", ", $errorInfo));
+        }
+        $stmt = $this->pdo->prepare("INSERT INTO verify_list (ss13, discord, create_time) VALUES (:ss13, :discord, :create_time)");
+        if ($stmt === false) {
+            throw new \PDOException("Failed to prepare statement.");
+        }
+        foreach ($list as $item) {
+            if (!$stmt->execute($item)) {
+                throw new \PDOException("Failed to execute statement.");
+            }
+        }
+    }
+
+    /**
+     * Retrieves the token.
+     *
+     * @return string The token.
+     */
+    public function getToken(): string
+    {
         return $this->civToken;
     }
 
-    public static function loadVerifyFile() {
+    /**
+     * Loads the verification data from the "verify.json" file.
+     * If the file does not exist, it creates an empty JSON array file.
+     * If the file cannot be read, it throws an exception.
+     *
+     * @return array|null The decoded JSON data as an associative array, or an empty array if the file is empty or invalid.
+     * @throws \Exception If the file cannot be read.
+     */
+    public static function loadVerifyFile(): ?array
+    {
         if (! file_exists("verify.json")) {
             file_put_contents("verify.json", "[]");
         }
         $data = file_get_contents("verify.json");
+        if ($data === false) {
+            throw new \Exception("Failed to read verify.json");
+        }
         return json_decode($data, true) ?: [];
     }
 
-    public static function loadEnvConfig() {
+    /**
+     * Loads environment configuration from a .env file. 
+     * If the .env file does not exist, it creates one with default values.
+     * 
+     * @return array The environment configuration as an associative array.
+     * @throws Exception If the TOKEN is 'changeme' and the HOST_ADDR is not '127.0.0.1'.
+     * 
+     * The default values include:
+     * - HOST_ADDR=127.0.0.1
+     * - HOST_PORT=8080
+     * - TOKEN=changeme
+     * - STORAGE_TYPE=filesystem
+     * - DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=verify_list
+     * - DB_PORT=3306
+     * - DB_USERNAME=your_username
+     * - DB_PASSWORD=your_password
+     * - DB_OPTIONS={"option1":"value1","option2":"value2"}
+     * 
+     * After loading the .env file, it checks if the TOKEN is 'changeme' and the HOST_ADDR is not '127.0.0.1'.
+     * If this condition is met, the script terminates with an error message.
+     * 
+     */
+    public static function loadEnvConfig(): array
+    {
         if (! file_exists(".env")) {
             file_put_contents(".env", 
                 "HOST_ADDR=127.0.0.1" . PHP_EOL . 
@@ -88,7 +197,7 @@ class PersistentState {
                 "#DB_PASSWORD=" . PHP_EOL . 
                 "#DB_OPTIONS=" . PHP_EOL . 
                 "# MySQL configuration" . PHP_EOL . 
-                "DB_DSN=mysql:host=127.0.0.1;port=3307;dbname=verify_list" . PHP_EOL . 
+                "DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=verify_list" . PHP_EOL . 
                 "DB_PORT=3306" . PHP_EOL . 
                 "DB_USERNAME=your_username" . PHP_EOL . 
                 "DB_PASSWORD=your_password" . PHP_EOL . 
@@ -116,7 +225,14 @@ class PersistentState {
         ];
     }
 
-    public static function writeJson($file, $data) {
+    /**
+     * Writes the given data to a file in JSON format.
+     *
+     * @param string $file The path to the file where the JSON data will be written.
+     * @param mixed $data The data to be encoded as JSON and written to the file.
+     */
+    public static function writeJson(string $file, $data): void
+    {
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
     }
 }
