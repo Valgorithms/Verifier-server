@@ -135,7 +135,7 @@ class Server {
         echo "Listening for connections..." . PHP_EOL;
         $this->listening = true;
         if (stripos(PHP_OS, 'WIN') === false && extension_loaded('pcntl')) {
-            declare(ticks = 1);
+            \pcntl_async_signals(true);
             \pcntl_signal(SIGTERM, [$this, 'stop']);
             \pcntl_signal(SIGINT, [$this, 'stop']);
         }
