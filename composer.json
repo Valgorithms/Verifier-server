@@ -1,6 +1,7 @@
 {
     "name": "vzgcoders/verifier-server",
-    "description": "Valithor's offical webserver for BYOND user verification.",
+    "description": "Valithor's official webserver for BYOND user verification.",
+    "license": "MIT",
     "authors": [
         {
             "name": "Valithor Obsidion",
