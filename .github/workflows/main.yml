@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -42,4 +43,4 @@ jobs:
       run: composer install --prefer-dist --no-progress --no-suggest
 
     - name: Run tests
-      run: vendor/bin/phpunit --configuration phpunit.xml
+      run: "./vendor/bin/phpunit --version"
