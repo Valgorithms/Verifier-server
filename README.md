@@ -4,7 +4,7 @@ Valithor's official webserver for BYOND user verification.
 
 ## Overview
 
-Verifier-Server is a web server designed to handle BYOND user verification. It supports both filesystem and SQL (SQLite/MySQL) storage for verification data.
+Verifier-Server is a web server designed to handle BYOND user verification.
 
 ## Features
 
