@@ -26,6 +26,7 @@ class VerifiedEndpoint {
                 $this->handleGet($response, $content_type, $body);
                 break;
             case 'POST':
+            case 'DELETE':
                 $this->handlePost($request, $response, $content_type, $body, $this->state->getJsonPath());
                 break;
             default:
@@ -107,8 +108,10 @@ class VerifiedEndpoint {
 
         switch ($methodType) {
             case 'delete':
+                $existingIndex = array_search($ckey, array_column($list, 'ss13'));
+                if ($existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
                 $this->handleDelete(
-                    array_search($discord, array_column($list, 'discord')),
+                    $existingIndex,
                     $list,
                     $response,
                     $content_type,
@@ -147,10 +150,12 @@ class VerifiedEndpoint {
             $body = 'Not Found';
             return;
         }
-        array_splice($list, $existingIndex, 1);
+        $splice = array_splice($list, $existingIndex, 1);
         PersistentState::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
-        $content_type = ['Content-Type' => 'text/plain'];
+        $response = Response::STATUS_OK;
+        $content_type = ['Content-Type' => 'application/json'];
+        $body = json_encode($splice);
     }
 
     /**
@@ -186,6 +191,7 @@ class VerifiedEndpoint {
         PersistentState::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
         $response = Response::STATUS_OK;
-        $content_type = ['Content-Type' => 'text/plain'];
+        $content_type = ['Content-Type' => 'application/json'];
+        $body = json_encode($list);
     }
 }
