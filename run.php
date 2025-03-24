@@ -5,7 +5,7 @@ require 'vendor/autoload.php';
 use VerifierServer\PersistentState;
 use VerifierServer\Server;
 
-$envConfig = PersistentState::loadEnvConfig();
+$envConfig = PersistentState::loadEnvConfig(); // Load environment configuration (or use your own implementation)
 
 $server = new Server(
     new PersistentState(
