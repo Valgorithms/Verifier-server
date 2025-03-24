@@ -11,8 +11,9 @@ Verifier-Server is a web server designed to handle BYOND user verification.
 - Handles GET and POST requests for user verification.
 - Supports both filesystem and SQL (SQLite/MySQL) storage.
 - Configurable via `.env` file.
-- Verbose mode for detailed request and response logging.
-- Graceful shutdown support on non-Windows systems with `pcntl` extension.
+- Logger mode for detailed request and response logging.
+- Graceful shutdown support on all systems with ReactPHP.
+- Graceful shutdown support on non-Windows systems with `pcntl` extension when not leveraging ReactPHP.
 
 ## Installation
 
@@ -38,6 +39,7 @@ Verifier-Server is a web server designed to handle BYOND user verification.
     HOST_PORT=8080
     TOKEN=changeme
     STORAGE_TYPE=filesystem
+    JSON_PATH=json\verify.json
 
     # SQLite configuration
     #DB_DSN=sqlite:verify.db

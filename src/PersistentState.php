@@ -1,4 +1,5 @@
-<?php
+<?php declare(strict_types=1);
+
 namespace VerifierServer;
 
 use Dotenv\Dotenv;
@@ -10,7 +11,8 @@ class PersistentState {
     public function __construct(
         private string $civToken,
         private array $verifyList = [],
-        private string $storageType = 'filesystem'
+        private string $storageType = 'filesystem',
+        private string $json_path = 'json\verify.json'
     ) {
         $this->civToken = $civToken;
         $this->storageType = $storageType;
@@ -149,14 +151,19 @@ class PersistentState {
      * @return array|null The decoded JSON data as an associative array, or an empty array if the file is empty or invalid.
      * @throws \Exception If the file cannot be read.
      */
-    public static function loadVerifyFile(): ?array
+    public static function loadVerifyFile(string $json_path = 'json\verify.json'): ?array
     {
-        if (! file_exists("verify.json")) {
-            file_put_contents("verify.json", "[]");
+        if ($directory = dirname($json_path)) {
+            if ($directory !== '.' && !is_dir($directory)) {
+                mkdir($directory, 0777, true);
+            }
         }
-        $data = file_get_contents("verify.json");
+        if (!file_exists($json_path)) {
+            file_put_contents($json_path, "[]");
+        }
+        $data = file_get_contents($json_path);
         if ($data === false) {
-            throw new \Exception("Failed to read verify.json");
+            throw new \Exception("Failed to read {$json_path}");
         }
         return json_decode($data, true) ?: [];
     }
@@ -234,5 +241,10 @@ class PersistentState {
     public static function writeJson(string $file, $data): void
     {
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
+    }
+
+    public function getJsonPath(): string
+    {
+        return $this->json_path;
     }
 }

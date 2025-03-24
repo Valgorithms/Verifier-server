@@ -1,4 +1,6 @@
-<?php
+<?php declare(strict_types=1);
+
+use React\Http\Message\Response;
 use PHPUnit\Framework\TestCase;
 use VerifierServer\Endpoints\VerifiedEndpoint;
 use VerifierServer\PersistentState;
@@ -19,6 +21,7 @@ class VerifiedEndpointTest extends TestCase {
         $civToken = $envConfig['TOKEN'];
         $storageType = $envConfig['STORAGE_TYPE'] ?? 'filesystem';
         $this->state = new PersistentState($civToken, $verifyFile, $storageType);
+
         $this->endpoint = new VerifiedEndpoint($this->state);
     }
 
@@ -30,27 +33,24 @@ class VerifiedEndpointTest extends TestCase {
      * It also verifies that the response contains the expected HTTP status.
      */
     public function testHandleDefault() {
-        try {
-            $list = [
-                ['ss13' => 'test1', 'discord' => 'test1', 'create_time' => date('Y-m-d H:i:s')],
-                ['ss13' => 'test2', 'discord' => 'test2', 'create_time' => date('Y-m-d H:i:s')]
-            ];
-            $this->state->setVerifyList($list);
+        $list = [
+            ['ss13' => 'test1', 'discord' => 'test1', 'create_time' => date('Y-m-d H:i:s')],
+            ['ss13' => 'test2', 'discord' => 'test2', 'create_time' => date('Y-m-d H:i:s')]
+        ];
+        $this->state->setVerifyList($list);
 
-            $response = "";
-            $this->endpoint->handleDefault($list, 'test3', 'test3', $response);
+        $response = "";
+        $content_type = [];
+        $body = "";
+        $this->endpoint->handleDefault($list, 'test3', 'test3', $response, $content_type, $body, $this->state->getJsonPath());
 
-            $expectedList = [
-                ['ss13' => 'test1', 'discord' => 'test1', 'create_time' => date('Y-m-d H:i:s')],
-                ['ss13' => 'test2', 'discord' => 'test2', 'create_time' => date('Y-m-d H:i:s')],
-                ['ss13' => 'test3', 'discord' => 'test3', 'create_time' => date('Y-m-d H:i:s')]
-            ];
+        $expectedList = [
+            ['ss13' => 'test1', 'discord' => 'test1', 'create_time' => date('Y-m-d H:i:s')],
+            ['ss13' => 'test2', 'discord' => 'test2', 'create_time' => date('Y-m-d H:i:s')],
+            ['ss13' => 'test3', 'discord' => 'test3', 'create_time' => date('Y-m-d H:i:s')]
+        ];
 
-            $this->assertEquals($expectedList, $this->state->getVerifyList());
-            $this->assertStringContainsString("HTTP/1.1 200 OK", $response);
-            echo "VerifiedEndpointTest::testHandleDefault succeeded." . PHP_EOL;
-        } catch (Exception $e) {
-            echo "VerifiedEndpointTest::testHandleDefault failed: " . $e->getMessage() . PHP_EOL;
-        }
+        $this->assertEquals($expectedList, $this->state->getVerifyList());
+        $this->assertStringContainsString((string) Response::STATUS_OK, (string) $response);
     }
 }

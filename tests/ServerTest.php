@@ -1,5 +1,7 @@
-<?php
+<?php declare(strict_types=1);
+
 use PHPUnit\Framework\TestCase;
+use React\Http\HttpServer;
 use VerifierServer\Server;
 use VerifierServer\PersistentState;
 
@@ -17,12 +19,12 @@ class ServerTest extends TestCase {
      */
     protected function setUp(): void
     {
-        $verifyFile = PersistentState::loadVerifyFile();
         $envConfig = PersistentState::loadEnvConfig();
         $hostAddr = $envConfig['HOST_ADDR'] . ':' . $envConfig['HOST_PORT'];
         $civToken = $envConfig['TOKEN'];
         $storageType = $envConfig['STORAGE_TYPE'] ?? 'filesystem';
-        $state = new PersistentState($civToken, $verifyFile, $storageType);
+        $jsonPath = $envConfig['JSON_PATH'] ?? 'json\verify.json';
+        $state = new PersistentState($civToken, [], $storageType, $jsonPath);
         $this->server = new Server($state, $hostAddr);
     }
 
@@ -32,11 +34,13 @@ class ServerTest extends TestCase {
      * This test initializes the server, retrieves the server resource,
      * asserts that the resource is valid, and then stops the server.
      */
-    public function testStart(): void
+    public function testInit(): void
     {
-        $this->server->init(true);
-        $serverResource = $this->server->get();
+        $this->server->init(null, true);
+        $serverResource = $this->server->getServer();
         $this->assertIsResource($serverResource, "Expected start() to return a resource");
-        $this->server->stop();
+        $this->server->init(null, false);
+        $serverResource = $this->server->getServer();
+        $this->assertInstanceOf(HttpServer::class, $serverResource);
     }
 }

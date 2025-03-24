@@ -10,13 +10,15 @@
     ],
     "require": {
         "php": "^7.4 || ^8.0",
-        "vlucas/phpdotenv": "^5.4"
+        "vlucas/phpdotenv": "^5.4",
+        "react/http": "^1.6",
+        "monolog/monolog": "^3.8.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5"
     },
     "suggest": {
-        "ext-pcntl": "Enables process control support for better server management on non-Windows systems"
+        "ext-pcntl": "Enables process control support for better server management on non-Windows systems when not leveraging ReactPHP"
     },
     "autoload": {
         "psr-4": {

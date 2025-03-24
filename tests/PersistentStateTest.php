@@ -1,9 +1,29 @@
-<?php
+<?php declare(strict_types=1);
+
 use PHPUnit\Framework\TestCase;
+use VerifierServer\PersistentState;
 
 class PersistentStateTest extends TestCase {
     private $state;
 
+    /**
+     * Sets up the test environment before each test.
+     *
+     * This method initializes the server instance with the necessary configuration
+     * and state. It loads the verification file and environment configuration,
+     * constructs the host address, retrieves the token and storage type, and
+     * creates a new PersistentState instance. Finally, it initializes the server
+     * with the created state and host address.
+     */
+    protected function setUp(): void
+    {
+        $verifyFile = PersistentState::loadVerifyFile();
+        $envConfig = PersistentState::loadEnvConfig();
+        $civToken = $envConfig['TOKEN'];
+        $storageType = $envConfig['STORAGE_TYPE'] ?? 'filesystem';
+        $this->state = new PersistentState($civToken, $verifyFile, $storageType);
+    }
+    
     /**
      * Sets up the test environment before each test.
      *
@@ -21,9 +41,9 @@ class PersistentStateTest extends TestCase {
             $this->state->setVerifyList($newList);
             $verifyList = $this->state->getVerifyList();
             $this->assertEquals($newList, $verifyList);
-            echo "PersistentStateTest::testSetVerifyList succeeded." . PHP_EOL;
+            //echo "PersistentStateTest::testSetVerifyList succeeded." . PHP_EOL;
         } catch (Exception $e) {
-            echo "PersistentStateTest::testSetVerifyList failed: " . $e->getMessage() . PHP_EOL;
+            //echo "PersistentStateTest::testSetVerifyList failed: " . $e->getMessage() . PHP_EOL;
         }
     }
 
