@@ -72,7 +72,7 @@ class Server {
      * 
      * This method sets up an event-driven server to handle incoming client connections.
      */
-    public function start(): void
+    public function start(bool $start_loop = false): void
     {
         if (! $this->initialized) {
             $this->init();
@@ -80,6 +80,7 @@ class Server {
         if (! $this->running) {
             if ($this->server instanceof HttpServer) {
                 $this->server->listen($this->socket);
+                if ($start_loop) $this->loop->run();
             } elseif (is_resource($this->server)) {
                 $this->running = true;
                 while ($this->running) {

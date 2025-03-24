@@ -17,6 +17,6 @@ $server = new Server(
     $envConfig['HOST_ADDR'] . ':' . $envConfig['HOST_PORT']
 );
 
-$server->init(null, true);
+$server->init(null, true); // Standalone without an event loop or ReactPHP server
 $server->setLogger(true);
 $server->start();
