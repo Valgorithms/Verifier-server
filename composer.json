@@ -22,7 +22,7 @@
     },
     "autoload": {
         "psr-4": {
-            "VerifierServer\\": "src/"
+            "VerifierServer\\": "src/VerifierServer/"
         }
     },
     "config": {
