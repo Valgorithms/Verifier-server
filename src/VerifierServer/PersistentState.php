@@ -212,7 +212,7 @@ class PersistentState {
             echo "No .env file found. Creating one with default values." . PHP_EOL;
         }
 
-        $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
+        $dotenv = Dotenv::createImmutable(__DIR__ . '\\..\\..\\');
         $dotenv->load();
 
         $env = $_ENV;
