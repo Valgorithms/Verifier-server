@@ -10,7 +10,7 @@ $envConfig = PersistentState::loadEnvConfig(); // Load environment configuration
 $server = new Server(
     new PersistentState(
         $envConfig['TOKEN'],
-        PersistentState::loadVerifyFile($envConfig['JSON_PATH'] ?? 'verify.json'),
+        PersistentState::loadVerifyFile($envConfig['JSON_PATH'] ?? 'json/verify.json'),
         $envConfig['STORAGE_TYPE'] ?? 'filesystem',
         $envConfig['JSON_PATH'] ?? 'verify.json',
     ),

@@ -17,11 +17,12 @@ class PersistentStateTest extends TestCase {
      */
     protected function setUp(): void
     {
-        $verifyFile = PersistentState::loadVerifyFile();
         $envConfig = PersistentState::loadEnvConfig();
-        $civToken = $envConfig['TOKEN'];
-        $storageType = $envConfig['STORAGE_TYPE'] ?? 'filesystem';
-        $this->state = new PersistentState($civToken, $verifyFile, $storageType);
+        $this->state = new PersistentState(
+            $envConfig['TOKEN'],
+            PersistentState::loadVerifyFile($envConfig['JSON_PATH'] ?? 'json/verify.json'),
+            $envConfig['STORAGE_TYPE'] ?? 'filesystem'
+        );
     }
     
     /**

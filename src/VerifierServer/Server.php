@@ -203,8 +203,7 @@ class Server {
                     $request,
                     $response,
                     $content_type,
-                    $body,
-                    $this->state->getJsonPath()
+                    $body
                 );
                 break;
 

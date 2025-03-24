@@ -16,11 +16,12 @@ class VerifiedEndpointTest extends TestCase {
      * PersistentState and VerifiedEndpoint instances required for the tests.
      */
     protected function setUp(): void {
-        $verifyFile = PersistentState::loadVerifyFile();
         $envConfig = PersistentState::loadEnvConfig();
-        $civToken = $envConfig['TOKEN'];
-        $storageType = $envConfig['STORAGE_TYPE'] ?? 'filesystem';
-        $this->state = new PersistentState($civToken, $verifyFile, $storageType);
+        $this->state = new PersistentState(
+            $envConfig['TOKEN'],
+            PersistentState::loadVerifyFile($envConfig['JSON_PATH'] ?? 'json/verify.json'),
+            $envConfig['STORAGE_TYPE'] ?? 'filesystem'
+        );
 
         $this->endpoint = new VerifiedEndpoint($this->state);
     }
@@ -42,7 +43,7 @@ class VerifiedEndpointTest extends TestCase {
         $response = "";
         $content_type = [];
         $body = "";
-        $this->endpoint->handleDefault($list, 'test3', 'test3', $response, $content_type, $body, $this->state->getJsonPath());
+        $this->endpoint->handleDefault($list, 'test3', 'test3', $response, $content_type, $body);
 
         $expectedList = [
             ['ss13' => 'test1', 'discord' => 'test1', 'create_time' => date('Y-m-d H:i:s')],

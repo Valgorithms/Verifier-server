@@ -27,7 +27,7 @@ class VerifiedEndpoint {
                 break;
             case 'POST':
             case 'DELETE':
-                $this->handlePost($request, $response, $content_type, $body, $this->state->getJsonPath());
+                $this->handlePost($request, $response, $content_type, $body);
                 break;
             default:
                 $response = Response::STATUS_METHOD_NOT_ALLOWED;
@@ -115,8 +115,7 @@ class VerifiedEndpoint {
                     $list,
                     $response,
                     $content_type,
-                    $body,
-                    $this->state->getJsonPath()
+                    $body
                 );
                 break;
             default:
@@ -126,8 +125,7 @@ class VerifiedEndpoint {
                     $discord,
                     $response,
                     $content_type,
-                    $body,
-                    $this->state->getJsonPath()
+                    $body
                 );
                 break;
         }

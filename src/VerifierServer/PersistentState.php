@@ -11,7 +11,7 @@ class PersistentState {
         private string $civToken,
         private array $verifyList = [],
         private string $storageType = 'filesystem',
-        private string $json_path = 'json\verify.json'
+        private string $json_path = 'json/verify.json'
     ) {
         $this->civToken = $civToken;
         $this->storageType = $storageType;
@@ -150,17 +150,20 @@ class PersistentState {
      * @return array|null The decoded JSON data as an associative array, or an empty array if the file is empty or invalid.
      * @throws \Exception If the file cannot be read.
      */
-    public static function loadVerifyFile(string $json_path = 'json\verify.json'): ?array
+    public static function loadVerifyFile(string $json_path): ?array
     {
-        if ($directory = dirname($json_path)) {
-            if ($directory !== '.' && !is_dir($directory)) {
-                mkdir($directory, 0777, true);
-            }
+        $json_path = getcwd() . "$json_path";
+        $directory = dirname($json_path);
+        if (!is_dir($directory)) {
+            mkdir($directory, 0777, true);
+            echo 'Created directories for path: ' . $directory . PHP_EOL;
         }
         if (!file_exists($json_path)) {
             file_put_contents($json_path, "[]");
+            echo 'Created empty JSON file at ' . realpath($json_path) . PHP_EOL;
         }
         $data = file_get_contents($json_path);
+        var_dump($data);
         if ($data === false) {
             throw new \Exception("Failed to read {$json_path}");
         }
