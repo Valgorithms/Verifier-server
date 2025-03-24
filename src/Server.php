@@ -130,6 +130,16 @@ class Server {
     }
 
     /**
+     * Retrieves the current state of the server.
+     *
+     * @return PersistentState The current state of the server.
+     */
+    public function getState(): PersistentState
+    {
+        return $this->state;
+    }
+
+    /**
      * Set the verbosity level of the server.
      *
      * @param Logger|bool $bool True to enable logging, false to disable it.

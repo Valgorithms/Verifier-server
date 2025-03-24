@@ -7,7 +7,6 @@ use Dotenv\Dotenv;
 class PersistentState {
     private \PDO $pdo;
 
-
     public function __construct(
         private string $civToken,
         private array $verifyList = [],
@@ -243,6 +242,11 @@ class PersistentState {
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
     }
 
+    /**
+     * Retrieves the JSON path associated with the persistent state.
+     *
+     * @return string The file path to the JSON data.
+     */
     public function getJsonPath(): string
     {
         return $this->json_path;
