@@ -78,7 +78,7 @@ class Server {
                 $this->loop = $loop instanceof LoopInterface
                     ? $loop
                     : Loop::get(),
-                fn($request) => $this->handle($request)
+                fn($request) => $this->handleReact($request)
             );
             $this->server->on('error', fn(\Throwable $e) => $this->logError($e, true));
             $this->socket = new SocketServer($this->hostAddr, [], $this->loop);
@@ -171,34 +171,6 @@ class Server {
             $logger->pushHandler(new \Monolog\Handler\StreamHandler('php://stdout', Level::Debug));
         }
         $this->logger = $logger;
-    }
-
-    /**
-     * Handles the incoming client request.
-     *
-     * @param  ServerRequestInterface|resource $request The client resource to handle.
-     *
-     * @throws \Exception If the client resource is invalid, reading from the client fails, or writing to the client fails.
-     * 
-     * @return ResponseInterface|null The response to send back to the client, or null if the client is a resource.
-     *
-     * This method reads the request from the client, parses the HTTP method and URI, and generates an appropriate response.
-     * It supports the following URIs:
-     * - `/`: Redirects to `/verified`.
-     * - `/verified`: Processes the request using the VerifiedEndpoint class.
-     * - Any other URI: Returns a 404 Not Found response.
-     *
-     * If the logger mode is enabled, the request and response are printed to the console.
-     */
-    public function handle($client): ?ResponseInterface
-    {
-        if (! $client instanceof ServerRequestInterface && ! is_resource($client)) {
-            throw new \Exception("Invalid client resource");
-        }
-
-        return $client instanceof ServerRequestInterface
-            ? $this->handleReact($client)
-            : $this->handleResource($client);
     }
 
     /**
