@@ -41,7 +41,7 @@ class Server {
     /**
      * The server instance.
      * 
-     * @var HttpServer|resource|null Server.
+     * @var HttpServer|resource|null HTTP server.
      * */
     protected $server;
 
@@ -70,7 +70,7 @@ class Server {
     /**
      * The server's endpoints.
      * 
-     * @var EndpointInterface[] Endpoints.
+     * @var EndpointInterface[] HTTP server endpoints.
      * */
     private array $endpoints = [];
     
