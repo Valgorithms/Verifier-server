@@ -40,9 +40,7 @@ class PersistentState {
         private string $storageType = 'filesystem',
         private string $json_path = 'json/verify.json'
     ) {
-        if ($this->storageType !== 'filesystem') {
-            $this->initializeDatabase();
-        }
+        $this->__wakeup();
     }
 
     /**
@@ -272,5 +270,27 @@ class PersistentState {
     public static function writeJson(string $file, array $data): void
     {
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Prepares the object for serialization by excluding the PDO object.
+     *
+     * @return array The list of properties to serialize.
+     */
+    public function __sleep(): array
+    {
+        return ['civToken', 'storageType', 'json_path', 'verifyList'];
+    }
+
+    /**
+     * Reinitializes the PDO object after deserialization.
+     *
+     * @return void
+     */
+    public function __wakeup(): void
+    {
+        if ($this->storageType !== 'filesystem') {
+            $this->initializeDatabase();
+        }
     }
 }
