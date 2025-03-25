@@ -241,6 +241,32 @@ class Server {
     }
 
     /**
+     * Handles the incoming HTTP request and generates the appropriate response.
+     *
+     * @param string                        $uri            The URI of the request.
+     * @param string                        $method         The HTTP method of the request (e.g., 'GET', 'POST').
+     * @param ServerRequestInterface|string $request        The request payload, typically used for 'POST' requests.
+     * @param int|string                    &$response      The variable to store the generated response.
+     * @param array                         &$content_type  The variable to store the content type of the response.
+     * @param string                        &$body          The variable to store the body of the response.
+     * @param bool                          $bypass_token   Whether to bypass the token check.
+     */
+    public function handleEndpoint(
+        string $uri,
+        string $method,
+        ServerRequestInterface|string $request,
+        int|string &$response,
+        array &$content_type,
+        string &$body,
+        bool $bypass_token = false
+    ): void
+    {
+        if (isset($this->endpoints[$uri]) && $this->endpoints[$uri] instanceof EndpointInterface) {
+            $this->endpoints[$uri]->handle($method, $request, $response, $content_type, $body, $bypass_token);
+        }
+    }
+
+    /**
      * Handles an incoming resource request from a client and generates appropriate responses.
      *
      * @param ServerRequestInterface $client The incoming client request.
@@ -257,15 +283,7 @@ class Server {
         $content_type = ['Content-Type' => 'text/plain'];
         $body = "Not Found";
 
-        if (isset($this->endpoints[$uri]) && $this->endpoints[$uri] instanceof EndpointInterface) {
-            $this->endpoints[$uri]->handle(
-                $method,
-                $client,
-                $response,
-                $content_type,
-                $body
-            );
-        }
+        $this->handleEndpoint($uri, $method, $client, $response, $content_type, $body);
 
         return new Response(
             $response,
