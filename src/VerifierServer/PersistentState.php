@@ -105,12 +105,12 @@ class PersistentState {
      * it simply assigns the provided list to the verifyList property. If the storage type is not 'filesystem',
      * it updates the verify_list table in the database.
      *
-     * @param array $list The list of verification items to be set. Each item in the list should be an associative array
-     *                    with keys 'ss13', 'discord', and 'create_time'.
-     * @param bool $write Whether to write the list to the database. Default is true.
+     * @param array $list  The list of verification items to be set. Each item in the list should be an associative array
+     *                         with keys 'ss13', 'discord', and 'create_time'.
+     * @param bool  $write Whether to write the list to the database. Default is true.
      * 
      * @throws \PDOException If there is an error deleting from the verify_list table, preparing the insert statement,
-     *                       or executing the insert statement.
+     *                           or executing the insert statement.
      */
     public function setVerifyList(array $list, bool $write = true): void
     {
@@ -240,7 +240,7 @@ class PersistentState {
      * Writes the given data to a file in JSON format.
      *
      * @param string $file The path to the file where the JSON data will be written.
-     * @param mixed $data The data to be encoded as JSON and written to the file.
+     * @param mixed  $data The data to be encoded as JSON and written to the file.
      */
     public static function writeJson(string $file, array $data): void
     {

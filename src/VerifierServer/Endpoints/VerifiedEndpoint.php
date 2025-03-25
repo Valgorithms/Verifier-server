@@ -14,11 +14,11 @@ class VerifiedEndpoint implements EndpointInterface
     /**
      * Handles the incoming HTTP request and generates the appropriate response.
      *
-     * @param string $method The HTTP method of the request (e.g., 'GET', 'POST').
-     * @param ServerRequestInterface|string $request The request payload, typically used for 'POST' requests.
-     * @param string &$response The variable to store the generated response.
-     * @param array &$content_type The variable to store the content type of the response.
-     * @param string &$body The variable to store the body of the response.
+     * @param string                        $method        The HTTP method of the request (e.g., 'GET', 'POST').
+     * @param ServerRequestInterface|string $request       The request payload, typically used for 'POST' requests.
+     * @param string                        &$response     The variable to store the generated response.
+     * @param array                         &$content_type The variable to store the content type of the response.
+     * @param string                        &$body         The variable to store the body of the response.
      */
     public function handle(string $method, ServerRequestInterface|string $request, int|string &$response, array &$content_type, string &$body, bool $bypass_token = false): void
     {
@@ -41,9 +41,9 @@ class VerifiedEndpoint implements EndpointInterface
     /**
      * Handles the GET request and prepares the response.
      *
-     * @param string &$response The response string to be sent back to the client.
-     * @param array &$content_type The variable to store the content type of the response.
-     * @param string &$body The variable to store the body of the response.
+     * @param string &$response     The response string to be sent back to the client.
+     * @param array  &$content_type The variable to store the content type of the response.
+     * @param string &$body         The variable to store the body of the response.
      *
      * This method sets the HTTP status code to 200 OK and the Content-Type to application/json.
      * It then appends the JSON-encoded verification list to the response.
@@ -58,10 +58,10 @@ class VerifiedEndpoint implements EndpointInterface
     /**
      * Handles POST requests by parsing the request data and performing actions based on the method type.
      *
-     * @param ServerRequestInterface|string $request The raw HTTP request string.
-     * @param string &$response The response string to be modified based on the request handling.
-     * @param array &$content_type The variable to store the content type of the response.
-     * @param string &$body The variable to store the body of the response.
+     * @param ServerRequestInterface|string $request       The raw HTTP request string.
+     * @param string                        &$response     The response string to be modified based on the request handling.
+     * @param array                         &$content_type The variable to store the content type of the response.
+     * @param string                        &$body         The variable to store the body of the response.
      *
      * The function performs the following steps:
      * 1. Extracts the raw data from the request.
@@ -141,12 +141,12 @@ class VerifiedEndpoint implements EndpointInterface
      * If neither exists, it adds the new entry to the list, writes the updated list to a JSON file,
      * updates the state, and sets the response to a 200 OK status.
      *
-     * @param array $list The list of existing entries.
-     * @param string $ckey The ckey to be verified.
-     * @param string $discord The discord identifier to be verified.
-     * @param string &$response The response message to be set based on the verification result.
-     * @param array &$content_type The variable to store the content type of the response.
-     * @param string &$body The variable to store the body of the response.
+     * @param array  $list          The list of existing entries.
+     * @param string $ckey          The ckey to be verified.
+     * @param string $discord       The discord identifier to be verified.
+     * @param string &$response     The response message to be set based on the verification result.
+     * @param array  &$content_type The variable to store the content type of the response.
+     * @param string &$body         The variable to store the body of the response.
      */
     private function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$content_type, string &$body): void
     {
@@ -175,10 +175,10 @@ class VerifiedEndpoint implements EndpointInterface
      * Handles the deletion of an item from the list.
      *
      * @param int|string|false $existingIndex The index of the item to delete, or false if the item does not exist.
-     * @param array &$list The list from which the item will be deleted.
-     * @param string &$response The HTTP response message to be returned.
-     * @param array &$content_type The variable to store the content type of the response.
-     * @param string &$body The variable to store the body of the response.
+     * @param array            &$list         The list from which the item will be deleted.
+     * @param string           &$response     The HTTP response message to be returned.
+     * @param array            &$content_type The variable to store the content type of the response.
+     * @param string           &$body         The variable to store the body of the response.
      */
     private function delete(int|string|false $existingIndex, array &$list, int|string &$response, array &$content_type, string &$body): void
     {

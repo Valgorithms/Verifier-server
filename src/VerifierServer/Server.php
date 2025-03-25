@@ -35,9 +35,9 @@ class Server {
     /**
      * Logs an error message with details about the exception.
      *
-     * @param \Exception $e The exception to log.
-     * @param bool $fatal Optional. Indicates whether the error is fatal. Defaults to false.
-     *                     If true, the server will stop after logging the error.
+     * @param \Exception $e     The exception to log.
+     * @param bool       $fatal Optional. Indicates whether the error is fatal. Defaults to false.
+     *                              If true, the server will stop after logging the error.
      *
      * @return string
      */
@@ -166,7 +166,7 @@ class Server {
     /**
      * Handles the incoming client request.
      *
-     * @param ServerRequestInterface|resource $request The client resource to handle.
+     * @param  ServerRequestInterface|resource $request The client resource to handle.
      *
      * @throws \Exception If the client resource is invalid, reading from the client fails, or writing to the client fails.
      * 
@@ -302,8 +302,9 @@ class Server {
      * Each key-value pair in the array is transformed into a string
      * in the format "key: value" and concatenated with a newline character.
      *
-     * @param  array  $formData The associative array to be converted.
-     * @return string           The resulting request string.
+     * @param array $formData The associative array to be converted.
+     * 
+     * @return string The resulting request string.
      */
     public static function arrayToRequestString(array $formData): string
     {

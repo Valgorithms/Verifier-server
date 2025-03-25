@@ -54,6 +54,7 @@ class VerifiedEndpointTest extends TestCase {
          * Converts an associative array back into the original string format.
          *
          * @param array $formData The associative array to be converted.
+         * 
          * @return string The reconstructed string.
          */
         $response = 0;
