@@ -24,7 +24,7 @@ class ServerTest extends TestCase {
         $civToken = $envConfig['TOKEN'];
         $storageType = $envConfig['STORAGE_TYPE'] ?? 'filesystem';
         $jsonPath = $envConfig['JSON_PATH'] ?? 'json/verify.json';
-        $state = new PersistentState($civToken, [], $storageType, $jsonPath);
+        $state = new PersistentState($civToken, $storageType, $jsonPath);
         $this->server = new Server($state, $hostAddr);
     }
 

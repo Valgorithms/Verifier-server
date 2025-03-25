@@ -6,10 +6,10 @@ use Dotenv\Dotenv;
 
 class PersistentState {
     private \PDO $pdo;
+    private array $verifyList;
 
     public function __construct(
         private string $civToken,
-        private array $verifyList = [],
         private string $storageType = 'filesystem',
         private string $json_path = 'json/verify.json'
     ) {
@@ -83,7 +83,9 @@ class PersistentState {
     public function getVerifyList(): array
     {
         if ($this->storageType === 'filesystem') {
-            return $this->verifyList;
+            return isset($this->verifyList)
+                ? $this->verifyList
+                : $this->verifyList = self::loadVerifyFile($this->json_path);
         }
         $stmt = $this->pdo->query("SELECT * FROM verify_list");
         if ($stmt === false) {
