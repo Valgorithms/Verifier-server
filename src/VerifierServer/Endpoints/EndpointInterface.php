@@ -13,7 +13,6 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 interface EndpointInterface
 {
-
     /**
      * Handles the incoming HTTP request and generates the appropriate response.
      *
