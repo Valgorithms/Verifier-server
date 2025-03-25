@@ -85,7 +85,7 @@ class PersistentState {
         if ($this->storageType === 'filesystem') {
             return isset($this->verifyList)
                 ? $this->verifyList
-                : $this->verifyList = self::loadVerifyFile($this->json_path);
+                : $this->verifyList = self::loadVerifyFile($this->getJsonPath());
         }
         $stmt = $this->pdo->query("SELECT * FROM verify_list");
         if ($stmt === false) {
@@ -154,7 +154,6 @@ class PersistentState {
      */
     public static function loadVerifyFile(string $json_path): ?array
     {
-        $json_path = getcwd() . "$json_path";
         echo 'Loading JSON file from ' . ($json_path) . PHP_EOL;
         $directory = dirname($json_path);
         if (!is_dir($directory)) {
@@ -255,6 +254,6 @@ class PersistentState {
      */
     public function getJsonPath(): string
     {
-        return $this->json_path;
+        return getcwd() . $this->json_path;
     }
 }
