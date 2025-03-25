@@ -155,6 +155,7 @@ class PersistentState {
     public static function loadVerifyFile(string $json_path): ?array
     {
         $json_path = getcwd() . "$json_path";
+        echo 'Loading JSON file from ' . ($json_path) . PHP_EOL;
         $directory = dirname($json_path);
         if (!is_dir($directory)) {
             mkdir($directory, 0777, true);
