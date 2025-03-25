@@ -6,6 +6,7 @@ use Monolog\Level;
 use Monolog\Logger;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
 use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
 use React\Http\HttpServer;
@@ -36,7 +37,7 @@ class Server {
     public function __construct(
         private PersistentState $state,
         private string $hostAddr,
-        private Logger|false $logger = false
+        private ?LoggerInterface $logger = null
     ) {
         $this->endpoints['/'] = new VerifiedEndpoint($state);
         $this->endpoints['/verified'] = &$this->endpoints['/'];
@@ -57,7 +58,7 @@ class Server {
         $error = 'Error: ' . $e->getMessage() . PHP_EOL .
             'Line ' . $e->getLine() . ' in ' . $e->getFile() . PHP_EOL .
             $e->getTraceAsString();
-        if ($this->logger) $this->logger->warning($error);
+        if (isset($this->logger)) $this->logger->warning($error);
     }
 
     /**
@@ -138,7 +139,31 @@ class Server {
     {
         return $this->loop ?? null;
     }
-    
+
+    /**
+     * Retrieves the logger instance.
+     *
+     * @return LoggerInterface|null Returns the logger instance if available, or null if the logger is disabled.
+     */
+    public function getLogger(): ?LoggerInterface
+    {
+        return isset($this->logger)
+            ? $this->logger
+            : null;
+    }
+
+    /**
+     * Retrieves the logger instance.
+     *
+     * @return LoggerInterface|true|null Returns the logger instance if available, or null if the logger is disabled.
+     */
+    public function setLogger(LoggerInterface|true|null $logger): void
+    {
+        $this->logger = $logger === true
+            ? new Logger('VerifierServer', [new \Monolog\Handler\StreamHandler('php://stdout', Level::Info)])
+            : $logger;
+    }
+
     /**
      * Retrieves the server instance.
      *
@@ -160,17 +185,19 @@ class Server {
     }
 
     /**
-     * Set the verbosity level of the server.
+     * Converts an associative array into a request string format.
+     * Useful for forging requests in tests or applications that require internal request generation.
      *
-     * @param Logger|bool $bool True to enable logging, false to disable it.
+     * Each key-value pair in the array is transformed into a string
+     * in the format "key: value" and concatenated with a newline character.
+     *
+     * @param array $formData The associative array to be converted.
+     * 
+     * @return string The resulting request string.
      */
-    public function setLogger(Logger|bool $logger = false): void
+    public static function arrayToRequestString(array $formData): string
     {
-        if ($logger === true) {
-            $logger = new Logger('Verifier Server');
-            $logger->pushHandler(new \Monolog\Handler\StreamHandler('php://stdout', Level::Debug));
-        }
-        $this->logger = $logger;
+        return implode(PHP_EOL, array_map(fn($key, $value) => $key . ': ' . $value, array_keys($formData), $formData));
     }
 
     /**
@@ -180,7 +207,7 @@ class Server {
      *
      * @return \Psr\Http\Message\ResponseInterface The generated HTTP response.
      */
-    public function handleReact(ServerRequestInterface $client): ResponseInterface
+    private function handleReact(ServerRequestInterface $client): ResponseInterface
     {
         $method = $client->getMethod();
         $uri = $client->getUri()->getPath();
@@ -216,7 +243,7 @@ class Server {
      *
      * @return null Always returns null after processing the request.
      */
-    public function handleResource($client): null
+    private function handleResource($client): null
     {
         $request = fread($client, 1024);
         $headers = [];
@@ -275,22 +302,6 @@ class Server {
         }
         fclose($client);
         return null;
-    }
-
-    /**
-     * Converts an associative array into a request string format.
-     * Useful for forging requests in tests or applications that require internal request generation.
-     *
-     * Each key-value pair in the array is transformed into a string
-     * in the format "key: value" and concatenated with a newline character.
-     *
-     * @param array $formData The associative array to be converted.
-     * 
-     * @return string The resulting request string.
-     */
-    public static function arrayToRequestString(array $formData): string
-    {
-        return implode(PHP_EOL, array_map(fn($key, $value) => $key . ': ' . $value, array_keys($formData), $formData));
     }
 
     /**
