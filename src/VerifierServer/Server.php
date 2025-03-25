@@ -94,7 +94,7 @@ class Server {
      */
     public function logError($e, bool $fatal = false): void
     {
-        if ($fatal) $this->stop();
+        if ($fatal) $this->close();
         $error = 'Error: ' . $e->getMessage() . PHP_EOL .
             'Line ' . $e->getLine() . ' in ' . $e->getFile() . PHP_EOL .
             $e->getTraceAsString();
@@ -162,7 +162,7 @@ class Server {
      * This method checks if the server resource is valid and open,
      * and if so, it closes the resource to stop the server.
      */
-    public function stop(bool $stop_loop = false): void
+    public function close(bool $stop_loop = false): void
     {
         if ($this->running) {
             $this->socket->close();
@@ -368,6 +368,6 @@ class Server {
      */
     public function __destruct()
     {
-        $this->stop();
+        $this->close();
     }
 }
