@@ -39,7 +39,7 @@ Verifier-Server is a web server designed to handle BYOND user verification.
     HOST_PORT=8080
     TOKEN=changeme
     STORAGE_TYPE=filesystem
-    JSON_PATH=json\verify.json
+    JSON_PATH=json/verify.json
 
     # SQLite configuration
     #DB_DSN=sqlite:verify.db
