@@ -153,9 +153,9 @@ class Server {
     }
 
     /**
-     * Retrieves the logger instance.
+     * Sets the logger instance.
      *
-     * @return LoggerInterface|true|null Returns the logger instance if available, or null if the logger is disabled.
+     * @param LoggerInterface|true|null $logger The logger instance to set.
      */
     public function setLogger(LoggerInterface|true|null $logger): void
     {
