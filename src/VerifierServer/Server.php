@@ -32,13 +32,14 @@ class Server {
      * @param bool $fatal Optional. Indicates whether the error is fatal. Defaults to false.
      *                     If true, the server will stop after logging the error.
      *
-     * @return void
+     * @return string
      */
-    public function logError($e, bool $fatal = false) {
-        echo 'Error: ' . $e->getMessage() . PHP_EOL .
-        'Line ' . $e->getLine() . ' in ' . $e->getFile() . PHP_EOL .
-        $e->getTraceAsString();
+    public function logError($e, bool $fatal = false): string
+    {
         if ($fatal) $this->stop();
+        return 'Error: ' . $e->getMessage() . PHP_EOL .
+            'Line ' . $e->getLine() . ' in ' . $e->getFile() . PHP_EOL .
+            $e->getTraceAsString();
     }
 
     /**
@@ -282,7 +283,6 @@ class Server {
             throw new \Exception("Failed to write to client");
         }
         fclose($client);
-        var_dump($response);
         return null;
     }
 

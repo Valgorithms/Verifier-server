@@ -154,18 +154,14 @@ class PersistentState {
      */
     public static function loadVerifyFile(string $json_path): ?array
     {
-        echo 'Loading JSON file from ' . ($json_path) . PHP_EOL;
         $directory = dirname($json_path);
         if (!is_dir($directory)) {
             mkdir($directory, 0777, true);
-            echo 'Created directories for path: ' . $directory . PHP_EOL;
         }
         if (!file_exists($json_path)) {
             file_put_contents($json_path, "[]");
-            echo 'Created empty JSON file at ' . realpath($json_path) . PHP_EOL;
         }
         $data = file_get_contents($json_path);
-        var_dump($data);
         if ($data === false) {
             throw new \Exception("Failed to read {$json_path}");
         }
@@ -214,7 +210,6 @@ class PersistentState {
                 "DB_PASSWORD=your_password" . PHP_EOL . 
                 "#DB_OPTIONS={\"option1\":\"value1\",\"option2\":\"value2\"}"
             );
-            echo "No .env file found. Creating one with default values." . PHP_EOL;
         }
 
         $dotenv = Dotenv::createImmutable(__DIR__ . '\\..\\..\\');
