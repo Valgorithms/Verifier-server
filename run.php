@@ -18,5 +18,5 @@ $server = new Server(
 
 //$server->init(null, true); // Standalone without an event loop or ReactPHP server
 $server->init(); // Standalone ReactPHP server
-$server->setLogger(true);
-$server->start();
+$server->setLogger(true); // (Optional) Pass an instance of Psr\Log\LoggerInterface;
+$server->start(true); // Start the server and the event loop
