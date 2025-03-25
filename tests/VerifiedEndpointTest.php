@@ -3,6 +3,7 @@
 use React\Http\Message\Response;
 use PHPUnit\Framework\TestCase;
 use VerifierServer\Endpoints\VerifiedEndpoint;
+use VerifierServer\Server;
 use VerifierServer\PersistentState;
 
 class VerifiedEndpointTest extends TestCase {
@@ -55,13 +56,11 @@ class VerifiedEndpointTest extends TestCase {
          * @param array $formData The associative array to be converted.
          * @return string The reconstructed string.
          */
-        $arrayToString = static fn(array $formData): string
-            => implode(PHP_EOL, array_map(fn($key, $value) => $key . ': ' . $value, array_keys($formData), $formData));
         $response = 0;
         $content_type = [];
         $body = "";
         $bypass_token = true;
-        $this->endpoint->handle($method, $arrayToString($formData), $response, $content_type, $body, $bypass_token);
+        $this->endpoint->handle($method, Server::arrayToRequestString($formData), $response, $content_type, $body, $bypass_token);
 
         //$this->assertArrayHasKey($list, $this->state->getVerifyList(true));
         $this->assertStringContainsString((string) Response::STATUS_OK, (string) $response);

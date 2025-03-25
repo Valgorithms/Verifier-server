@@ -296,6 +296,21 @@ class Server {
     }
 
     /**
+     * Converts an associative array into a request string format.
+     * Useful for forging requests in tests or applications that require internal request generation.
+     *
+     * Each key-value pair in the array is transformed into a string
+     * in the format "key: value" and concatenated with a newline character.
+     *
+     * @param  array  $formData The associative array to be converted.
+     * @return string           The resulting request string.
+     */
+    public static function arrayToRequestString(array $formData): string
+    {
+        return implode(PHP_EOL, array_map(fn($key, $value) => $key . ': ' . $value, array_keys($formData), $formData));
+    }
+
+    /**
      * Destructor method that is automatically called when the object is destroyed.
      * It ensures that the server is properly stopped by calling the stop() method.
      */
