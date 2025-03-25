@@ -4,6 +4,7 @@ namespace VerifierServer;
 
 use Monolog\Level;
 use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
@@ -14,6 +15,10 @@ use React\Http\Message\Response;
 use React\Socket\SocketServer;
 use VerifierServer\Endpoints\VerifiedEndpoint;
 use VerifierServer\Endpoints\EndpointInterface;
+
+use Exception;
+use Throwable;
+use function pcntl_signal_dispatch;
 
 /**
  * Class Server
@@ -46,7 +51,7 @@ class Server {
     /**
      * Logs an error message with details about the exception.
      *
-     * @param \Exception $e     The exception to log.
+     * @param Exception $e     The exception to log.
      * @param bool       $fatal Optional. Indicates whether the error is fatal. Defaults to false.
      *                              If true, the server will stop after logging the error.
      *
@@ -64,7 +69,7 @@ class Server {
     /**
      * Initializes the server by creating a stream socket server and setting it to non-blocking mode.
      *
-     * @throws \Exception If the server fails to be created.
+     * @throws Exception If the server fails to be created.
      */
     public function init(?LoopInterface $loop = null, bool $stream_socket_server = false): void
     {
@@ -72,7 +77,7 @@ class Server {
         if ($stream_socket_server) {
             $this->server = stream_socket_server("{$this->hostAddr}", $errno, $errstr);
             if (! is_resource($this->server)) {
-                throw new \Exception("Failed to create server: $errstr ($errno)");
+                throw new Exception("Failed to create server: $errstr ($errno)");
             }
         } else {
             $this->server = new HttpServer(
@@ -81,7 +86,7 @@ class Server {
                     : Loop::get(),
                 fn($request) => $this->handleReact($request)
             );
-            $this->server->on('error', fn(\Throwable $e) => $this->logError($e, true));
+            $this->server->on('error', fn(Throwable $e) => $this->logError($e, true));
             $this->socket = new SocketServer($this->hostAddr, [], $this->loop);
         }
         $this->initialized = true;
@@ -106,7 +111,7 @@ class Server {
                 $this->running = true;
                 while ($this->running) {
                     if (stripos(PHP_OS, 'WIN') === false && extension_loaded('pcntl')) {
-                        \pcntl_signal_dispatch();
+                        pcntl_signal_dispatch();
                     }
                     if ($client = @stream_socket_accept($this->server, 0)) {
                         $this->handleResource($client);
@@ -160,7 +165,7 @@ class Server {
     public function setLogger(LoggerInterface|true|null $logger): void
     {
         $this->logger = $logger === true
-            ? new Logger('VerifierServer', [new \Monolog\Handler\StreamHandler('php://stdout', Level::Info)])
+            ? new Logger('VerifierServer', [new StreamHandler('php://stdout', Level::Info)])
             : $logger;
     }
 
@@ -203,9 +208,9 @@ class Server {
     /**
      * Handles an incoming resource request from a client and generates appropriate responses.
      *
-     * @param \Psr\Http\Message\ServerRequestInterface $client The incoming client request.
+     * @param ServerRequestInterface $client The incoming client request.
      *
-     * @return \Psr\Http\Message\ResponseInterface The generated HTTP response.
+     * @return ResponseInterface The generated HTTP response.
      */
     private function handleReact(ServerRequestInterface $client): ResponseInterface
     {
@@ -239,7 +244,7 @@ class Server {
      *
      * @param resource $client The client socket resource to handle the request from.
      *
-     * @throws \Exception If reading from or writing to the client fails.
+     * @throws Exception If reading from or writing to the client fails.
      *
      * @return null Always returns null after processing the request.
      */
@@ -256,7 +261,7 @@ class Server {
         }
 
         if ($request === false) {
-            throw new \Exception("Failed to read from client");
+            throw new Exception("Failed to read from client");
         }
         $lines = explode(PHP_EOL, trim($request));
         $firstLine = explode(' ', $lines[0]);
@@ -298,7 +303,7 @@ class Server {
             $response = "HTTP/1.1 $response $statusText";
         }
         if (fwrite($client, $response . PHP_EOL . implode(PHP_EOL, array_map(fn($key, $value) => "$key: $value", array_keys($content_type), $content_type)) . PHP_EOL . PHP_EOL . $body) === false) {
-            throw new \Exception("Failed to write to client");
+            throw new Exception("Failed to write to client");
         }
         fclose($client);
         return null;

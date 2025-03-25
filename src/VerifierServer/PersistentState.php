@@ -4,6 +4,10 @@ namespace VerifierServer;
 
 use Dotenv\Dotenv;
 
+use Exception;
+use PDO;
+use PDOException;
+
 /**
  * Class PersistentState
  *
@@ -17,7 +21,7 @@ use Dotenv\Dotenv;
  * @package VerifierServer
  */
 class PersistentState {
-    private \PDO $pdo;
+    private PDO $pdo;
     private array $verifyList;
 
     public function __construct(
@@ -46,18 +50,18 @@ class PersistentState {
      * - discord: TEXT
      * - create_time: TEXT
      *
-     * @throws \PDOException if the table creation fails.
+     * @throws PDOException if the table creation fails.
      */
     private function initializeDatabase(): void
     {
         $env = self::loadEnvConfig();
-        $this->pdo = new \PDO(
+        $this->pdo = new PDO(
             $env['DB_DSN'],
             $env['DB_USERNAME'],
             $env['DB_PASSWORD'],
             isset($env['DB_OPTIONS']) ? json_decode($env['DB_OPTIONS'], true) : null
         );
-        if (strpos($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME), 'mysql') !== false) {
+        if (strpos($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME), 'mysql') !== false) {
             if ($this->pdo->exec("CREATE TABLE IF NOT EXISTS verify_list (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 ss13 VARCHAR(255),
@@ -65,7 +69,7 @@ class PersistentState {
                 create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )") === false) {
                 $errorInfo = $this->pdo->errorInfo();
-                throw new \PDOException("Failed to create table: " . implode(", ", $errorInfo));
+                throw new PDOException("Failed to create table: " . implode(", ", $errorInfo));
             }
         } else {
             if ($this->pdo->exec("CREATE TABLE IF NOT EXISTS verify_list (
@@ -75,7 +79,7 @@ class PersistentState {
                 create_time TEXT
             )") === false) {
                 $errorInfo = $this->pdo->errorInfo();
-                throw new \PDOException("Failed to create table: " . implode(", ", $errorInfo));
+                throw new PDOException("Failed to create table: " . implode(", ", $errorInfo));
             }
         }
     }
@@ -88,7 +92,7 @@ class PersistentState {
      *
      * @return array The verification list.
      *
-     * @throws \PDOException If there is an error executing the query or fetching the data from the database.
+     * @throws PDOException If there is an error executing the query or fetching the data from the database.
      */
     public function getVerifyList(bool $getLocalCache = false): array
     {
@@ -100,12 +104,12 @@ class PersistentState {
         $stmt = $this->pdo->query("SELECT * FROM verify_list");
         if ($stmt === false) {
             $errorInfo = $this->pdo->errorInfo();
-            throw new \PDOException("Failed to execute query: " . implode(", ", $errorInfo));
+            throw new PDOException("Failed to execute query: " . implode(", ", $errorInfo));
         }
-        $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
         if ($result === false) {
             $errorInfo = $this->pdo->errorInfo();
-            throw new \PDOException("Failed to fetch data: " . implode(", ", $errorInfo));
+            throw new PDOException("Failed to fetch data: " . implode(", ", $errorInfo));
         }
         return $this->verifyList = $result;
     }
@@ -121,21 +125,21 @@ class PersistentState {
      *                         with keys 'ss13', 'discord', and 'create_time'.
      * @param bool  $write Whether to write the list to the database. Default is true.
      * 
-     * @throws \PDOException If there is an error deleting from the verify_list table, preparing the insert statement,
+     * @throws PDOException If there is an error deleting from the verify_list table, preparing the insert statement,
      *                           or executing the insert statement.
      */
     public function setVerifyList(array $list, bool $write = true): void
     {
         if ($write && $this->storageType !== 'filesystem') {
             if ($this->pdo->exec("DELETE FROM verify_list") === false) {
-                throw new \PDOException("Failed to delete from verify_list: " . implode(", ", $this->pdo->errorInfo()));
+                throw new PDOException("Failed to delete from verify_list: " . implode(", ", $this->pdo->errorInfo()));
             }
             $stmt = $this->pdo->prepare("INSERT INTO verify_list (ss13, discord, create_time) VALUES (:ss13, :discord, :create_time)");
             if ($stmt === false) {
-                throw new \PDOException("Failed to prepare statement.");
+                throw new PDOException("Failed to prepare statement.");
             }
             foreach ($list as $item) if (!$stmt->execute($item)) {
-                throw new \PDOException("Failed to execute statement.");
+                throw new PDOException("Failed to execute statement.");
             }
         }
         $this->verifyList = $list;
@@ -230,7 +234,7 @@ class PersistentState {
      * If the file cannot be read, it throws an exception.
      *
      * @return array|null The decoded JSON data as an associative array, or an empty array if the file is empty or invalid.
-     * @throws \Exception If the file cannot be read.
+     * @throws Exception If the file cannot be read.
      */
     public static function loadVerifyFile(string $json_path): ?array
     {
@@ -243,7 +247,7 @@ class PersistentState {
         }
         $data = file_get_contents($json_path);
         if ($data === false) {
-            throw new \Exception("Failed to read {$json_path}");
+            throw new Exception("Failed to read {$json_path}");
         }
         return json_decode($data, true) ?: [];
     }
