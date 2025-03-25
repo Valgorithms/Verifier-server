@@ -49,6 +49,7 @@ class VerifiedEndpoint {
      */
     private function handleGet(int|string &$response, array &$content_type, string &$body): void
     {
+        $response = Response::STATUS_OK;
         $content_type = ['Content-Type' => 'application/json'];
         $body = json_encode($this->state->getVerifyList());
     }
@@ -179,6 +180,7 @@ class VerifiedEndpoint {
         if ($existingCkeyIndex !== false || $existingDiscordIndex !== false) {
             $response = Response::STATUS_FORBIDDEN;
             $content_type = ['Content-Type' => 'text/plain'];
+            $body = 'Forbidden';
             return;
         }
         $list[] = [
