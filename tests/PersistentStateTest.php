@@ -33,18 +33,13 @@ class PersistentStateTest extends TestCase {
      */
     public function testSetVerifyList(): void
     {
-        try {
-            $newList = [
-                ['ss13' => 'test1', 'discord' => 'test1', 'create_time' => date('Y-m-d H:i:s')],
-                ['ss13' => 'test2', 'discord' => 'test2', 'create_time' => date('Y-m-d H:i:s')]
-            ];
-            $this->state->setVerifyList($newList);
-            $verifyList = $this->state->getVerifyList();
-            $this->assertEquals($newList, $verifyList);
-            //echo "PersistentStateTest::testSetVerifyList succeeded." . PHP_EOL;
-        } catch (Exception $e) {
-            //echo "PersistentStateTest::testSetVerifyList failed: " . $e->getMessage() . PHP_EOL;
-        }
+        $newList = [
+            ['ss13' => 'test1', 'discord' => 'test1', 'create_time' => date('Y-m-d H:i:s')],
+            ['ss13' => 'test2', 'discord' => 'test2', 'create_time' => date('Y-m-d H:i:s')]
+        ];
+        $this->state->setVerifyList($newList);
+        $verifyList = $this->state->getVerifyList();
+        $this->assertEquals($newList, $verifyList);
     }
 
     /**
@@ -56,12 +51,7 @@ class PersistentStateTest extends TestCase {
      */
     public function testGetToken(): void
     {
-        try {
-            $token = $this->state->getToken();
-            $this->assertIsString($token);
-            echo "PersistentStateTest::testGetToken succeeded." . PHP_EOL;
-        } catch (Exception $e) {
-            echo "PersistentStateTest::testGetToken failed: " . $e->getMessage() . PHP_EOL;
-        }
+        $token = $this->state->getToken();
+        $this->assertIsString($token);
     }
 }
