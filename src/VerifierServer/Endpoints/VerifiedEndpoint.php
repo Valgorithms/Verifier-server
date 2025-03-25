@@ -6,8 +6,9 @@ use React\Http\Message\Response;
 use Psr\Http\Message\ServerRequestInterface;
 use VerifierServer\PersistentState;
 
-class VerifiedEndpoint {
-    public function __construct(private PersistentState $state)
+class VerifiedEndpoint implements EndpointInterface
+{
+    public function __construct(private PersistentState &$state)
     {}
 
     /**
@@ -19,15 +20,15 @@ class VerifiedEndpoint {
      * @param array &$content_type The variable to store the content type of the response.
      * @param string &$body The variable to store the body of the response.
      */
-    public function handleRequest(string $method, ServerRequestInterface|string $request, int|string &$response, array &$content_type, string &$body): void
+    public function handle(string $method, ServerRequestInterface|string $request, int|string &$response, array &$content_type, string &$body, bool $bypass_token = false): void
     {
         switch ($method) {
             case 'GET':
-                $this->handleGet($response, $content_type, $body);
+                $this->get($response, $content_type, $body);
                 break;
             case 'POST':
             case 'DELETE':
-                $this->handlePost($request, $response, $content_type, $body);
+                $this->post($request, $response, $content_type, $body, $bypass_token);
                 break;
             default:
                 $response = Response::STATUS_METHOD_NOT_ALLOWED;
@@ -47,7 +48,7 @@ class VerifiedEndpoint {
      * This method sets the HTTP status code to 200 OK and the Content-Type to application/json.
      * It then appends the JSON-encoded verification list to the response.
      */
-    private function handleGet(int|string &$response, array &$content_type, string &$body): void
+    private function get(int|string &$response, array &$content_type, string &$body): void
     {
         $response = Response::STATUS_OK;
         $content_type = ['Content-Type' => 'application/json'];
@@ -70,7 +71,7 @@ class VerifiedEndpoint {
      * 5. Retrieves the verification list from the state.
      * 6. Based on the method type, either deletes an entry from the list or handles the default case.
      */
-    private function handlePost(ServerRequestInterface|string $request, int|string &$response, array &$content_type, string &$body): void
+    private function post(ServerRequestInterface|string $request, int|string &$response, array &$content_type, string &$body, bool $bypass_token = false): void
     {
         if ($request instanceof ServerRequestInterface) {
             $formData = $request->getHeaders();
@@ -98,7 +99,7 @@ class VerifiedEndpoint {
             ? trim(is_array($formData['token']) ? $formData['token'][0] : $formData['token'])
             : '';
         
-        if ($this->state->getToken() === 'changeme' || $token !== $this->state->getToken()) {
+        if (!$bypass_token && ($this->state->getToken() === 'changeme' || $token !== $this->state->getToken())) {
             $response = Response::STATUS_UNAUTHORIZED;
             $content_type = ['Content-Type' => 'text/plain'];
             $body = 'Unauthorized';
@@ -111,7 +112,7 @@ class VerifiedEndpoint {
             case 'delete':
                 $existingIndex = array_search($ckey, array_column($list, 'ss13'));
                 if ($existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
-                $this->handleDelete(
+                $this->delete(
                     $existingIndex,
                     $list,
                     $response,
@@ -120,7 +121,7 @@ class VerifiedEndpoint {
                 );
                 break;
             default:
-                $this->handleDefault(
+                $this->__post(
                     $list,
                     $ckey,
                     $discord,
@@ -130,31 +131,6 @@ class VerifiedEndpoint {
                 );
                 break;
         }
-    }
-
-    /**
-     * Handles the deletion of an item from the list.
-     *
-     * @param int|string|false $existingIndex The index of the item to delete, or false if the item does not exist.
-     * @param array &$list The list from which the item will be deleted.
-     * @param string &$response The HTTP response message to be returned.
-     * @param array &$content_type The variable to store the content type of the response.
-     * @param string &$body The variable to store the body of the response.
-     */
-    private function handleDelete(int|string|false $existingIndex, array &$list, int|string &$response, array &$content_type, string &$body): void
-    {
-        if ($existingIndex === false) {
-            $response = Response::STATUS_NOT_FOUND;
-            $content_type = ['Content-Type' => 'text/plain'];
-            $body = 'Not Found';
-            return;
-        }
-        $splice = array_splice($list, $existingIndex, 1);
-        PersistentState::writeJson($this->state->getJsonPath(), $list);
-        $this->state->setVerifyList($list);
-        $response = Response::STATUS_OK;
-        $content_type = ['Content-Type' => 'application/json'];
-        $body = json_encode($splice);
     }
 
     /**
@@ -172,7 +148,7 @@ class VerifiedEndpoint {
      * @param array &$content_type The variable to store the content type of the response.
      * @param string &$body The variable to store the body of the response.
      */
-    public function handleDefault(array &$list, string $ckey, string $discord, int|string &$response, array &$content_type, string &$body): void
+    private function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$content_type, string &$body): void
     {
         $existingCkeyIndex = array_search($ckey, array_column($list, 'ss13'));
         $existingDiscordIndex = array_search($discord, array_column($list, 'discord'));
@@ -193,5 +169,30 @@ class VerifiedEndpoint {
         $response = Response::STATUS_OK;
         $content_type = ['Content-Type' => 'application/json'];
         $body = json_encode($list);
+    }
+
+    /**
+     * Handles the deletion of an item from the list.
+     *
+     * @param int|string|false $existingIndex The index of the item to delete, or false if the item does not exist.
+     * @param array &$list The list from which the item will be deleted.
+     * @param string &$response The HTTP response message to be returned.
+     * @param array &$content_type The variable to store the content type of the response.
+     * @param string &$body The variable to store the body of the response.
+     */
+    private function delete(int|string|false $existingIndex, array &$list, int|string &$response, array &$content_type, string &$body): void
+    {
+        if ($existingIndex === false) {
+            $response = Response::STATUS_NOT_FOUND;
+            $content_type = ['Content-Type' => 'text/plain'];
+            $body = 'Not Found';
+            return;
+        }
+        $splice = array_splice($list, $existingIndex, 1);
+        PersistentState::writeJson($this->state->getJsonPath(), $list);
+        $this->state->setVerifyList($list);
+        $response = Response::STATUS_OK;
+        $content_type = ['Content-Type' => 'application/json'];
+        $body = json_encode($splice);
     }
 }

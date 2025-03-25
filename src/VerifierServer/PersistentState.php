@@ -13,16 +13,7 @@ class PersistentState {
         private string $storageType = 'filesystem',
         private string $json_path = 'json/verify.json'
     ) {
-        $this->civToken = $civToken;
-        $this->storageType = $storageType;
-
         if ($this->storageType !== 'filesystem') {
-            $env = self::loadEnvConfig();
-            $dsn = $env['DB_DSN'];
-            $username = $env['DB_USERNAME'];
-            $password = $env['DB_PASSWORD'];
-            $options = isset($env['DB_OPTIONS']) ? json_decode($env['DB_OPTIONS'], true) : [];
-            $this->pdo = new \PDO($dsn, $username, $password, $options);
             $this->initializeDatabase();
         }
     }
@@ -47,6 +38,13 @@ class PersistentState {
      */
     private function initializeDatabase(): void
     {
+        $env = self::loadEnvConfig();
+        $this->pdo = new \PDO(
+            $env['DB_DSN'],
+            $env['DB_USERNAME'],
+            $env['DB_PASSWORD'],
+            isset($env['DB_OPTIONS']) ? json_decode($env['DB_OPTIONS'], true) : null
+        );
         if (strpos($this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME), 'mysql') !== false) {
             if ($this->pdo->exec("CREATE TABLE IF NOT EXISTS verify_list (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -80,9 +78,9 @@ class PersistentState {
      *
      * @throws \PDOException If there is an error executing the query or fetching the data from the database.
      */
-    public function getVerifyList(): array
+    public function getVerifyList(bool $getLocalCache = false): array
     {
-        if ($this->storageType === 'filesystem') {
+        if ($this->storageType === 'filesystem' || $getLocalCache) {
             return isset($this->verifyList)
                 ? $this->verifyList
                 : $this->verifyList = self::loadVerifyFile($this->getJsonPath());
@@ -97,7 +95,7 @@ class PersistentState {
             $errorInfo = $this->pdo->errorInfo();
             throw new \PDOException("Failed to fetch data: " . implode(", ", $errorInfo));
         }
-        return $result;
+        return $this->verifyList = $result;
     }
 
     /**
@@ -109,29 +107,26 @@ class PersistentState {
      *
      * @param array $list The list of verification items to be set. Each item in the list should be an associative array
      *                    with keys 'ss13', 'discord', and 'create_time'.
+     * @param bool $write Whether to write the list to the database. Default is true.
      * 
      * @throws \PDOException If there is an error deleting from the verify_list table, preparing the insert statement,
      *                       or executing the insert statement.
      */
-    public function setVerifyList(array $list): void
+    public function setVerifyList(array $list, bool $write = true): void
     {
-        if ($this->storageType === 'filesystem') {
-            $this->verifyList = $list;
-            return;
-        }
-        if ($this->pdo->exec("DELETE FROM verify_list") === false) {
-            $errorInfo = $this->pdo->errorInfo();
-            throw new \PDOException("Failed to delete from verify_list: " . implode(", ", $errorInfo));
-        }
-        $stmt = $this->pdo->prepare("INSERT INTO verify_list (ss13, discord, create_time) VALUES (:ss13, :discord, :create_time)");
-        if ($stmt === false) {
-            throw new \PDOException("Failed to prepare statement.");
-        }
-        foreach ($list as $item) {
-            if (!$stmt->execute($item)) {
+        if ($write && $this->storageType !== 'filesystem') {
+            if ($this->pdo->exec("DELETE FROM verify_list") === false) {
+                throw new \PDOException("Failed to delete from verify_list: " . implode(", ", $this->pdo->errorInfo()));
+            }
+            $stmt = $this->pdo->prepare("INSERT INTO verify_list (ss13, discord, create_time) VALUES (:ss13, :discord, :create_time)");
+            if ($stmt === false) {
+                throw new \PDOException("Failed to prepare statement.");
+            }
+            foreach ($list as $item) if (!$stmt->execute($item)) {
                 throw new \PDOException("Failed to execute statement.");
             }
         }
+        $this->verifyList = $list;
     }
 
     /**
@@ -145,27 +140,13 @@ class PersistentState {
     }
 
     /**
-     * Loads the verification data from the "verify.json" file.
-     * If the file does not exist, it creates an empty JSON array file.
-     * If the file cannot be read, it throws an exception.
+     * Retrieves the JSON path associated with the persistent state.
      *
-     * @return array|null The decoded JSON data as an associative array, or an empty array if the file is empty or invalid.
-     * @throws \Exception If the file cannot be read.
+     * @return string The file path to the JSON data.
      */
-    public static function loadVerifyFile(string $json_path): ?array
+    public function getJsonPath(): string
     {
-        $directory = dirname($json_path);
-        if (!is_dir($directory)) {
-            mkdir($directory, 0777, true);
-        }
-        if (!file_exists($json_path)) {
-            file_put_contents($json_path, "[]");
-        }
-        $data = file_get_contents($json_path);
-        if ($data === false) {
-            throw new \Exception("Failed to read {$json_path}");
-        }
-        return json_decode($data, true) ?: [];
+        return getcwd() . '/' . $this->json_path;
     }
 
     /**
@@ -232,23 +213,37 @@ class PersistentState {
     }
 
     /**
+     * Loads the verification data from the "verify.json" file.
+     * If the file does not exist, it creates an empty JSON array file.
+     * If the file cannot be read, it throws an exception.
+     *
+     * @return array|null The decoded JSON data as an associative array, or an empty array if the file is empty or invalid.
+     * @throws \Exception If the file cannot be read.
+     */
+    public static function loadVerifyFile(string $json_path): ?array
+    {
+        $directory = dirname($json_path);
+        if (!is_dir($directory)) {
+            mkdir($directory, 0777, true);
+        }
+        if (!file_exists($json_path)) {
+            file_put_contents($json_path, "[]");
+        }
+        $data = file_get_contents($json_path);
+        if ($data === false) {
+            throw new \Exception("Failed to read {$json_path}");
+        }
+        return json_decode($data, true) ?: [];
+    }
+
+    /**
      * Writes the given data to a file in JSON format.
      *
      * @param string $file The path to the file where the JSON data will be written.
      * @param mixed $data The data to be encoded as JSON and written to the file.
      */
-    public static function writeJson(string $file, $data): void
+    public static function writeJson(string $file, array $data): void
     {
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT));
-    }
-
-    /**
-     * Retrieves the JSON path associated with the persistent state.
-     *
-     * @return string The file path to the JSON data.
-     */
-    public function getJsonPath(): string
-    {
-        return getcwd() . $this->json_path;
     }
 }

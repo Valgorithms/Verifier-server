@@ -4,7 +4,7 @@ use PHPUnit\Framework\TestCase;
 use VerifierServer\PersistentState;
 
 class PersistentStateTest extends TestCase {
-    private $state;
+    private PersistentState $state;
 
     /**
      * Sets up the test environment before each test.
@@ -33,13 +33,13 @@ class PersistentStateTest extends TestCase {
      */
     public function testSetVerifyList(): void
     {
-        $newList = [
+        $list = [
             ['ss13' => 'test1', 'discord' => 'test1', 'create_time' => date('Y-m-d H:i:s')],
             ['ss13' => 'test2', 'discord' => 'test2', 'create_time' => date('Y-m-d H:i:s')]
         ];
-        $this->state->setVerifyList($newList);
-        $verifyList = $this->state->getVerifyList();
-        $this->assertEquals($newList, $verifyList);
+        $this->state->setVerifyList($list, false);
+        $verifyList = $this->state->getVerifyList(true);
+        $this->assertEquals($list, $verifyList);
     }
 
     /**

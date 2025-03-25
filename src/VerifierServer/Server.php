@@ -4,6 +4,7 @@ namespace VerifierServer;
 
 use Monolog\Level;
 use Monolog\Logger;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
@@ -11,6 +12,7 @@ use React\Http\HttpServer;
 use React\Http\Message\Response;
 use React\Socket\SocketServer;
 use VerifierServer\Endpoints\VerifiedEndpoint;
+use VerifierServer\Endpoints\EndpointInterface;
 
 class Server {
     private LoopInterface $loop;
@@ -18,12 +20,17 @@ class Server {
     private SocketServer $socket;
     private bool $initialized = false;
     private bool $running = false;
+
+    private array $endpoints = [];
     
     public function __construct(
         private PersistentState $state,
         private string $hostAddr,
         private Logger|false $logger = false
-    ) {}
+    ) {
+        $this->endpoints['/'] = new VerifiedEndpoint($state);
+        $this->endpoints['/verified'] = &$this->endpoints['/'];
+    }
 
     /**
      * Logs an error message with details about the exception.
@@ -163,7 +170,7 @@ class Server {
      *
      * @throws \Exception If the client resource is invalid, reading from the client fails, or writing to the client fails.
      * 
-     * @return Response|null The response to send back to the client, or null if the client is a resource.
+     * @return ResponseInterface|null The response to send back to the client, or null if the client is a resource.
      *
      * This method reads the request from the client, parses the HTTP method and URI, and generates an appropriate response.
      * It supports the following URIs:
@@ -173,7 +180,7 @@ class Server {
      *
      * If the logger mode is enabled, the request and response are printed to the console.
      */
-    public function handle($client): ?Response
+    public function handle($client): ?ResponseInterface
     {
         if (! $client instanceof ServerRequestInterface && ! is_resource($client)) {
             throw new \Exception("Invalid client resource");
@@ -184,40 +191,32 @@ class Server {
             : $this->handleResource($client);
     }
 
-    public function handleReact($client): Response
+    /**
+     * Handles an incoming resource request from a client and generates appropriate responses.
+     *
+     * @param \Psr\Http\Message\ServerRequestInterface $client The incoming client request.
+     *
+     * @return \Psr\Http\Message\ResponseInterface The generated HTTP response.
+     */
+    public function handleReact(ServerRequestInterface $client): ResponseInterface
     {
-        $request = $client;
-
         $method = $client->getMethod();
-        
         $uri = $client->getUri()->getPath();
 
+        // Defaults
+        $response = Response::STATUS_NOT_FOUND;
+        $content_type = ['Content-Type' => 'text/plain'];
+        $body = "Not Found";
 
-        $response = Response::STATUS_OK;
-        $content_type = ['Content-Type' => 'application/json'];
-        $body = "";
-
-        switch ($uri) {
-            case '/':
-            case '/verified':
-                $endpoint = new VerifiedEndpoint($this->state);
-                $endpoint->handleRequest(
-                    $method,
-                    $request,
-                    $response,
-                    $content_type,
-                    $body
-                );
-                break;
-
-            default:
-                $response = Response::STATUS_NOT_FOUND;
-                $content_type = ['Content-Type' => 'text/plain'];
-                $body = "Not Found";
-                break;
+        if (isset($this->endpoints[$uri]) && $this->endpoints[$uri] instanceof EndpointInterface) {
+            $this->endpoints[$uri]->handle(
+                $method,
+                $client,
+                $response,
+                $content_type,
+                $body
+            );
         }
-
-        if ($this->logger) $this->logger->debug((string) $response, $content_type);
 
         return new Response(
             $response,
@@ -226,7 +225,15 @@ class Server {
         );
     }
 
-    // NYI
+    /**
+     * Handles an incoming resource request from a client and generates appropriate responses.
+     *
+     * @param resource $client The client socket resource to handle the request from.
+     *
+     * @throws \Exception If reading from or writing to the client fails.
+     *
+     * @return null Always returns null after processing the request.
+     */
     public function handleResource($client): null
     {
         $request = fread($client, 1024);
@@ -256,7 +263,7 @@ class Server {
             case '/':
             case '/verified':
                 $endpoint = new VerifiedEndpoint($this->state);
-                $endpoint->handleRequest($method, $request, $response, $content_type, $body);
+                $endpoint->handle($method, $request, $response, $content_type, $body);
                 break;
 
             default:
