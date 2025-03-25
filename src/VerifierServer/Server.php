@@ -34,12 +34,13 @@ class Server {
      *
      * @return string
      */
-    public function logError($e, bool $fatal = false): string
+    public function logError($e, bool $fatal = false): void
     {
         if ($fatal) $this->stop();
-        return 'Error: ' . $e->getMessage() . PHP_EOL .
+        $error = 'Error: ' . $e->getMessage() . PHP_EOL .
             'Line ' . $e->getLine() . ' in ' . $e->getFile() . PHP_EOL .
             $e->getTraceAsString();
+        if ($this->logger) $this->logger->warning($error);
     }
 
     /**
@@ -81,6 +82,7 @@ class Server {
         if (! $this->running) {
             if ($this->server instanceof HttpServer) {
                 $this->server->listen($this->socket);
+                $this->running = true;
                 if ($start_loop) $this->loop->run();
             } elseif (is_resource($this->server)) {
                 $this->running = true;
