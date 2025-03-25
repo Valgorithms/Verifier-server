@@ -6,6 +6,44 @@ use React\Http\Message\Response;
 use Psr\Http\Message\ServerRequestInterface;
 use VerifierServer\PersistentState;
 
+/**
+ * Class VerifiedEndpoint
+ *
+ * This class is responsible for handling the verification process for the VerifierServer.
+ * It implements the EndpointInterface and provides methods to handle HTTP GET, POST, and DELETE requests.
+ *
+ * Key Responsibilities:
+ * - Handles GET requests to retrieve the list of verified users in JSON format.
+ * - Handles POST requests to add a new verification entry or DELETE requests to remove an existing entry.
+ * - Validates authorization tokens to ensure secure access to the endpoint.
+ * - Manages the persistent state of the verification list by reading from and writing to a JSON file.
+ *
+ * Methods:
+ * - __construct: Initializes the VerifiedEndpoint with a reference to the PersistentState object.
+ * - handle: Routes incoming HTTP requests to the appropriate handler based on the HTTP method.
+ * - get: Handles GET requests to retrieve the verification list.
+ * - post: Handles POST and DELETE requests to modify the verification list.
+ * - __post: Adds a new verification entry to the list if it does not already exist.
+ * - delete: Removes an existing verification entry from the list.
+ *
+ * Authorization:
+ * - The class checks the provided token against the expected token stored in the PersistentState.
+ * - If the token is invalid, the response is set to 401 Unauthorized.
+ * - If the token is valid, the requested action is performed.
+ *
+ * Error Handling:
+ * - Returns 401 Unauthorized if the provided token does not match the expected token.
+ * - Returns 403 Forbidden if a duplicate entry is detected during a POST request.
+ * - Returns 404 Not Found if an entry to be deleted does not exist.
+ * - Returns 405 Method Not Allowed for unsupported HTTP methods.
+ *
+ * Response Structure:
+ * - Sets appropriate HTTP status codes.
+ * - Sets the Content-Type header based on the response type (e.g., application/json, text/plain).
+ * - Encodes the response body as JSON for successful requests or as plain text for error responses.
+ *
+ * @package VerifierServer\Endpoints
+ */
 class VerifiedEndpoint implements EndpointInterface
 {
     public function __construct(private PersistentState &$state)

@@ -14,6 +14,16 @@ use React\Socket\SocketServer;
 use VerifierServer\Endpoints\VerifiedEndpoint;
 use VerifierServer\Endpoints\EndpointInterface;
 
+/**
+ * Class Server
+ *
+ * This class represents a server implementation that can handle HTTP requests
+ * using ReactPHP's HttpServer or a stream socket server. It provides methods
+ * for initializing, starting, stopping, and handling client requests. The server
+ * supports endpoints and logging functionality.
+ *
+ * @package VerifierServer
+ */
 class Server {
     private LoopInterface $loop;
     private $server;

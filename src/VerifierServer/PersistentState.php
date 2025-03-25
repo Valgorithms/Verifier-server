@@ -4,6 +4,18 @@ namespace VerifierServer;
 
 use Dotenv\Dotenv;
 
+/**
+ * Class PersistentState
+ *
+ * This class provides a persistent state management system for verification data. It supports two storage types:
+ * - Filesystem: Stores the verification data in a JSON file.
+ * - Database: Stores the verification data in a database table.
+ *
+ * The class includes methods for initializing the storage, retrieving and updating the verification list, 
+ * and managing environment configurations.
+ * 
+ * @package VerifierServer
+ */
 class PersistentState {
     private \PDO $pdo;
     private array $verifyList;

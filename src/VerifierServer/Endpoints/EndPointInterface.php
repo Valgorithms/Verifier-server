@@ -4,6 +4,13 @@ namespace VerifierServer\Endpoints;
 
 use Psr\Http\Message\ServerRequestInterface;
 
+/**
+ * Interface EndpointInterface
+ *
+ * Defines the contract for handling incoming HTTP requests and generating appropriate responses.
+ *
+ * @package VerifierServer\Endpoints
+ */
 interface EndpointInterface
 {
 
