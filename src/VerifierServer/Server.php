@@ -31,12 +31,47 @@ use function pcntl_signal_dispatch;
  * @package VerifierServer
  */
 class Server {
-    private LoopInterface $loop;
-    private $server;
-    private SocketServer $socket;
-    private bool $initialized = false;
-    private bool $running = false;
+    /**
+    * The ReactPHP event loop.
+     * 
+     * @var LoopInterface Event loop.
+     * */
+    protected LoopInterface $loop;
 
+    /**
+     * The server instance.
+     * 
+     * @var HttpServer|resource|null Server.
+     * */
+    protected $server;
+
+    /**
+     * The socket server instance.
+     * 
+     * @var SocketServer Socket server.
+    */
+   protected SocketServer $socket;
+
+    /**
+     * Whether the server has been initialized.
+     *
+     * @var bool Initialized.
+     *
+     */
+    protected bool $initialized = false;
+
+    /**
+     * Whether the server is running.
+     * 
+     * @var bool Running.
+     */
+    protected bool $running = false;
+
+    /**
+     * The server's endpoints.
+     * 
+     * @var EndpointInterface[] Endpoints.
+     * */
     private array $endpoints = [];
     
     public function __construct(

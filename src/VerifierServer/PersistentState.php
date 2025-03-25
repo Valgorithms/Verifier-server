@@ -21,7 +21,18 @@ use PDOException;
  * @package VerifierServer
  */
 class PersistentState {
-    private PDO $pdo;
+    /**
+     * The PDO object for database operations.
+     * 
+     * @var PDO Database connection.
+    */
+    protected PDO $pdo;
+
+    /**
+     * The list of verification items.
+     * 
+     * @var array Verification list.
+    */
     private array $verifyList;
 
     public function __construct(
