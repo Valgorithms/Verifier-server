@@ -21,7 +21,7 @@ interface EndpointInterface
      * @param int|string                    &$response      The variable to store the generated response.
      * @param array                         &$content_type  The variable to store the content type of the response.
      * @param string                        &$body          The variable to store the body of the response.
-     * @param bool                          $bypass_token   Whether to bypass the token check.
+     * @param bool                          $bypass_token   Whether to bypass the token check. Default is false.
      */
     public function handle(
         string $method,

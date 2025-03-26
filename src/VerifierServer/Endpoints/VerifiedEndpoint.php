@@ -22,9 +22,9 @@ use VerifierServer\PersistentState;
  * - __construct: Initializes the VerifiedEndpoint with a reference to the PersistentState object.
  * - handle: Routes incoming HTTP requests to the appropriate handler based on the HTTP method.
  * - get: Handles GET requests to retrieve the verification list.
- * - post: Handles POST and DELETE requests to modify the verification list.
- * - __post: Adds a new verification entry to the list if it does not already exist.
- * - delete: Removes an existing verification entry from the list.
+ * - post: Handles POST requests to modify the verification list.
+ * - __post: Adds a new entry to the verification list if its fields/columns are unique.
+ * - delete: Handles DELETE request to remove an existing entry from the verification list.
  *
  * Authorization:
  * - The class checks the provided token against the expected token stored in the PersistentState.
