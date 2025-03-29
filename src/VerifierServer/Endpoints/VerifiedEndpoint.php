@@ -46,6 +46,7 @@ use VerifierServer\PersistentState;
  */
 class VerifiedEndpoint implements EndpointInterface
 {
+    use HeaderParserTrait;
     public function __construct(private PersistentState &$state)
     {}
 
@@ -119,19 +120,12 @@ class VerifiedEndpoint implements EndpointInterface
      */
     private function post(ServerRequestInterface|string $request, int|string &$response, array &$content_type, string &$body, bool $bypass_token = false): void
     {
-        if ($request instanceof ServerRequestInterface) {
-            $formData = $request->getHeaders();
-        } elseif (is_string($request)) {
-            $formData = [];
-            $lines = explode(PHP_EOL, $request);
-            foreach ($lines as $line) {
-                if (strpos($line, ':') !== false) {
-                    [$key, $value] = explode(':', $line, 2);
-                    $formData[trim($key)] = trim($value);
-                }
-            }
-        }
-        
+        $formData = $request instanceof ServerRequestInterface
+            ? $request->getHeaders()
+            : (is_string($request)
+                ? self::parseHeaders($request)
+                : []);
+
         $methodType = isset($formData['method']) 
             ? strtolower(trim(is_array($formData['method']) ? $formData['method'][0] : $formData['method']))
             : null;
