@@ -256,7 +256,7 @@ class PersistentState {
         }
         $data = file_get_contents($json_path);
         if ($data === false) {
-            throw new Exception("Failed to read {$json_path}");
+            throw new Exception("Failed to read $json_path");
         }
         return json_decode($data, true) ?: [];
     }
