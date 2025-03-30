@@ -19,8 +19,9 @@ class VerifiedEndpointTest extends TestCase {
     protected function setUp(): void {
         $envConfig = PersistentState::loadEnvConfig();
         $this->state = new PersistentState(
-            $envConfig['TOKEN'],
-            $envConfig['STORAGE_TYPE'] ?? 'filesystem'
+            $envConfig['TOKEN'] ?? 'changeme',
+            $envConfig['STORAGE_TYPE'] ?? 'filesystem',
+            $envConfig['JSON_PATH'] ?? 'json/verify.json'
         );
 
         $this->endpoint = new VerifiedEndpoint($this->state);

@@ -20,15 +20,12 @@ class ServerTest extends TestCase {
     protected function setUp(): void
     {
         $envConfig = PersistentState::loadEnvConfig();
-        $this->server = new Server(
-            ($envConfig['HOST_ADDR'] ?? '127.0.0.1') . ':' . ($envConfig['HOST_PORT'] ?? '8080')
-        );
-        $state = new PersistentState(
+        $this->server = new Server(($envConfig['HOST_ADDR'] ?? '127.0.0.1') . ':' . ($envConfig['HOST_PORT'] ?? '8080'));
+        $this->server->setState([
             $envConfig['TOKEN'] ?? 'changeme',
             $envConfig['STORAGE_TYPE'] ?? 'filesystem',
             $envConfig['JSON_PATH'] ?? 'json/verify.json'
-        );
-        $this->server->setState($state);
+        ]);
     }
 
     /**
