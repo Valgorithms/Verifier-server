@@ -84,24 +84,6 @@ class Server {
     }
 
     /**
-     * Logs an error message with details about the exception.
-     *
-     * @param Exception $e     The exception to log.
-     * @param bool       $fatal Optional. Indicates whether the error is fatal. Defaults to false.
-     *                              If true, the server will stop after logging the error.
-     *
-     * @return string
-     */
-    public function logError($e, bool $fatal = false): void
-    {
-        if ($fatal) $this->close();
-        $error = 'Error: ' . $e->getMessage() . PHP_EOL .
-            'Line ' . $e->getLine() . ' in ' . $e->getFile() . PHP_EOL .
-            $e->getTraceAsString();
-        if (isset($this->logger)) $this->logger->warning($error);
-    }
-
-    /**
      * Initializes the server by creating a stream socket server and setting it to non-blocking mode.
      *
      * @throws Exception If the server fails to be created.
@@ -109,22 +91,48 @@ class Server {
     public function init(?LoopInterface $loop = null, bool $stream_socket_server = false): void
     {
         if ($this->running) return;
-        if ($stream_socket_server) {
-            $this->server = stream_socket_server("{$this->hostAddr}", $errno, $errstr);
-            if (! is_resource($this->server)) {
-                throw new Exception("Failed to create server: $errstr ($errno)");
-            }
-        } else {
-            $this->server = new HttpServer(
-                $this->loop = $loop instanceof LoopInterface
-                    ? $loop
-                    : Loop::get(),
-                fn($request) => $this->handleReact($request)
-            );
-            $this->server->on('error', fn(Throwable $e) => $this->logError($e, true));
-            $this->socket = new SocketServer($this->hostAddr, [], $this->loop);
-        }
         $this->initialized = true;
+        ($stream_socket_server)
+            ? $this->initStreamSocketServer()
+            : $this->initReactHttpServer($loop);
+    }
+
+    /**
+     * Initializes a stream socket server.
+     *
+     * This method creates a stream socket server using the specified host address.
+     * If the server cannot be created, an exception is thrown with the error details.
+     *
+     * @throws Exception If the stream socket server fails to initialize.
+     */
+    private function initStreamSocketServer(): void
+    {
+        if (! is_resource($this->server = stream_socket_server("{$this->hostAddr}", $errno, $errstr))) {
+            throw new Exception("Failed to create server: $errstr ($errno)");
+        }
+    }
+
+    /**
+     * Initializes the ReactPHP HTTP server.
+     *
+     * This method sets up an HTTP server using ReactPHP's HttpServer and SocketServer.
+     * It accepts an optional event loop instance. If no loop is provided, it defaults
+     * to using the global loop instance. The HTTP server is configured to handle incoming
+     * requests via the `handleReact` method and logs errors using the `logError` method.
+     *
+     * @param LoopInterface|null $loop Optional event loop instance. If null, the global loop is used.
+     *
+     * @return void
+     */
+    private function initReactHttpServer(?LoopInterface $loop = null): void
+    {
+        $this->server = new HttpServer(
+            $this->loop = $loop instanceof LoopInterface
+                ? $loop
+                : Loop::get(),
+            fn($request) => $this->handleReact($request)
+        )->on('error', fn(Throwable $e) => $this->logError($e, true));
+        $this->socket = new SocketServer($this->hostAddr, [], $this->loop);
     }
 
     /**
@@ -138,21 +146,48 @@ class Server {
             $this->init();
         }
         if (! $this->running) {
-            if ($this->server instanceof HttpServer) {
-                $this->server->listen($this->socket);
-                $this->running = true;
-                if ($start_loop) $this->loop->run();
-            } elseif (is_resource($this->server)) {
-                $this->running = true;
-                while ($this->running) {
-                    if (stripos(PHP_OS, 'WIN') === false && extension_loaded('pcntl')) {
-                        pcntl_signal_dispatch();
-                    }
-                    if ($client = @stream_socket_accept($this->server, 0)) {
-                        $this->handleResource($client);
-                    }
-                }
+            $this->running = true;
+            ($this->server instanceof HttpServer)
+                ? $this->startReact($start_loop)
+                : $this->startResource();
+        }
+    }
+
+    /**
+     * Starts the ReactPHP server by binding it to the specified socket.
+     *
+     * @param bool $start_loop Determines whether to start the event loop.
+     *                          - If true, the event loop will be started.
+     *                          - If false, the event loop will not be started.
+     *
+     * @return void
+     */
+    private function startReact(bool $start_loop = false): void
+    {
+        $this->server->listen($this->socket);
+        if ($start_loop) $this->loop->run();
+    }
+
+    /**
+     * Starts the resource handling loop for the server.
+     *
+     * This method continuously listens for incoming client connections
+     * while the server is running. If the operating system is not Windows
+     * and the `pcntl` extension is loaded, it dispatches pending signals
+     * using `pcntl_signal_dispatch`. When a client connection is accepted,
+     * it delegates the handling of the connection to the `handleResource` method.
+     *
+     * @return void
+     */
+    private function startResource(): void
+    {
+        while ($this->running) {
+            if (stripos(PHP_OS, 'WIN') === false && extension_loaded('pcntl')) {
+                pcntl_signal_dispatch();
             }
+            ($client = @stream_socket_accept($this->server, 0))
+                ? $this->handleResource($client)
+                : $this->logError(new Exception("Failed to accept client connection"), true);
         }
     }
 
@@ -212,6 +247,16 @@ class Server {
     public function getServer()
     {
         return $this->server ?? null;
+    }
+
+    /**
+     * Retrieves the socket instance.
+     *
+     * @return SocketServer|null Returns the socket instance if set, or null if not set.
+     */
+    public function getSocketServer(): SocketServer|null
+    {
+        return $this->socket ?? null;
     }
 
     /**
@@ -351,6 +396,27 @@ class Server {
         }
         fclose($client);
         return null;
+    }
+
+    /**
+     * Logs an error message with details about the exception.
+     *
+     * @param Exception $e     The exception to log.
+     * @param bool       $fatal Optional. Indicates whether the error is fatal. Defaults to false.
+     *                              If true, the server will stop after logging the error.
+     *
+     * @return string
+     */
+    public function logError(Exception $e, bool $fatal = false): void
+    {
+        if ($fatal) $this->close();
+        if (isset($this->logger)) $this->logger->warning(sprintf(
+            "Error: %s" . PHP_EOL . "Line %d in %s" . PHP_EOL . "%s",
+            $e->getMessage(),
+            $e->getLine(),
+            $e->getFile(),
+            $e->getTraceAsString()
+        ));
     }
 
     /**
