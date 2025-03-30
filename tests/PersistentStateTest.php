@@ -20,7 +20,8 @@ class PersistentStateTest extends TestCase {
         $envConfig = PersistentState::loadEnvConfig();
         $this->state = new PersistentState(
             $envConfig['TOKEN'],
-            $envConfig['STORAGE_TYPE'] ?? 'filesystem'
+            $envConfig['STORAGE_TYPE'] ?? 'filesystem',
+            $envConfig['JSON_PATH'] ?? 'json/verify.json'
         );
     }
     

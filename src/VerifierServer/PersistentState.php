@@ -203,6 +203,7 @@ class PersistentState {
                 "HOST_PORT=8080" . PHP_EOL . 
                 "TOKEN=changeme" . PHP_EOL . 
                 "STORAGE_TYPE=filesystem" . PHP_EOL . 
+                "JSON_PATH=json/verify.json" . PHP_EOL .
                 "# SQLite configuration" . PHP_EOL . 
                 "#DB_DSN=sqlite:verify.db" . PHP_EOL . 
                 "#DB_USERNAME=" . PHP_EOL . 
