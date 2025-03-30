@@ -440,6 +440,7 @@ class Server {
     {
         if (isset($this->state)) return;
         if (is_array($state)) $state = new PersistentState(...$state);
+        $this->state = $state;
         $this->__setVerifiedEndpoint($state);
     }
 
