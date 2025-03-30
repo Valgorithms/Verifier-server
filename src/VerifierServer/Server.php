@@ -39,6 +39,13 @@ class Server {
     protected LoopInterface $loop;
 
     /**
+     * The logger.
+     *
+     * @var LoggerInterface Logger.
+     */
+    protected LoggerInterface $logger;
+
+    /**
      * The server instance.
      * 
      * @var HttpServer|resource|null HTTP server.
@@ -50,7 +57,7 @@ class Server {
      * 
      * @var SocketServer Socket server.
     */
-   protected SocketServer $socket;
+    protected SocketServer $socket;
 
     /**
      * Whether the server has been initialized.
@@ -75,12 +82,12 @@ class Server {
     private array $endpoints = [];
     
     public function __construct(
-        private PersistentState $state,
         private string $hostAddr,
-        private ?LoggerInterface $logger = null
+        private ?PersistentState $state = null
     ) {
-        $this->endpoints['/'] = new VerifiedEndpoint($state);
-        $this->endpoints['/verified'] = &$this->endpoints['/'];
+        if ($state) {
+            $this->endpoints = ['/' => new VerifiedEndpoint($state), '/verified' => &$this->endpoints['/']];
+        }
     }
 
     /**

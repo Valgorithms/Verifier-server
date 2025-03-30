@@ -8,12 +8,13 @@ use VerifierServer\Server;
 $envConfig = PersistentState::loadEnvConfig(); // Load environment configuration (or use your own implementation)
 
 $server = new Server(
+    $envConfig['HOST_ADDR'] . ':' . $envConfig['HOST_PORT'],
+    null,
     new PersistentState(
         $envConfig['TOKEN'],
         $envConfig['STORAGE_TYPE'] ?? 'filesystem',
         $envConfig['JSON_PATH'] ?? 'json/verify.json',
-    ),
-    $envConfig['HOST_ADDR'] . ':' . $envConfig['HOST_PORT']
+    )    
 );
 
 //$server->init(null, true); // Standalone without an event loop or ReactPHP server
