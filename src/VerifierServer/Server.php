@@ -428,12 +428,13 @@ class Server {
     /**
      * Sets the state for the server instance.
      *
-     * This method initializes the state only if it has not been set already.
-     * If the provided state is an array, it will be converted into a 
-     * PersistentState object.
+     * This method ensures that the state is initialized only once. If the state
+     * is provided as an array, it will be converted into a PersistentState object.
+     * The state is then assigned to the server instance and used to set up the
+     * verified endpoint.
      *
      * @param array|PersistentState $state The state to set, either as an 
-     *                                     associative array or a PersistentState object.
+     *                                     array of options or a PersistentState object.
      * @return void
      */
     public function setState(array|PersistentState $state)
