@@ -43,10 +43,10 @@ class VerifiedEndpointTest extends TestCase {
             ],
         ];
         $formData = [
-            'method' => 'POST',
-            'ckey' => $ckey,
+            'method'  => 'POST',
+            'ckey'    => $ckey,
             'discord' => $discord,
-            'token' => 'testToken'
+            'token'   => $this->state->getToken()
         ];
         
         $method = 'POST';
@@ -58,10 +58,10 @@ class VerifiedEndpointTest extends TestCase {
          * @return string The reconstructed string.
          */
         $response = 0;
-        $content_type = [];
+        $headers = [];
         $body = "";
         $bypass_token = true;
-        $this->endpoint->handle($method, Server::arrayToRequestString($formData), $response, $content_type, $body, $bypass_token);
+        $this->endpoint->handle($method, Server::arrayToRequestString($formData), $response, $headers, $body, $bypass_token);
 
         //$this->assertArrayHasKey($list, $this->state->getVerifyList(true));
         $this->assertStringContainsString((string) Response::STATUS_OK, (string) $response);

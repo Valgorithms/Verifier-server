@@ -38,8 +38,10 @@ class PersistentStateTest extends TestCase {
             ['ss13' => 'test2', 'discord' => 'test2', 'create_time' => date('Y-m-d H:i:s')]
         ];
         $this->state->setVerifyList($list, false);
-        $verifyList = $this->state->getVerifyList(true);
-        $this->assertEquals($list, $verifyList);
+        $this->assertEquals(
+            $list,
+            $this->state->getVerifyList(true)
+        );
     }
 
     /**
@@ -51,7 +53,6 @@ class PersistentStateTest extends TestCase {
      */
     public function testGetToken(): void
     {
-        $token = $this->state->getToken();
-        $this->assertIsString($token);
+        $this->assertIsString($this->state->getToken());
     }
 }

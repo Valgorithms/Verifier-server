@@ -247,7 +247,7 @@ class Server {
      * @param string                        $method         The HTTP method of the request (e.g., 'GET', 'POST').
      * @param ServerRequestInterface|string $request        The request payload, typically used for 'POST' requests.
      * @param int|string                    &$response      The variable to store the generated response.
-     * @param array                         &$content_type  The variable to store the content type of the response.
+     * @param array                         &$headers       The variable to store the content type of the response.
      * @param string                        &$body          The variable to store the body of the response.
      * @param bool                          $bypass_token   Whether to bypass the token check.
      */
@@ -256,13 +256,13 @@ class Server {
         string $method,
         ServerRequestInterface|string $request,
         int|string &$response,
-        array &$content_type,
+        array &$headers,
         string &$body,
         bool $bypass_token = false
     ): void
     {
         if (isset($this->endpoints[$uri]) && $this->endpoints[$uri] instanceof EndpointInterface) {
-            $this->endpoints[$uri]->handle($method, $request, $response, $content_type, $body, $bypass_token);
+            $this->endpoints[$uri]->handle($method, $request, $response, $headers, $body, $bypass_token);
         }
     }
 
@@ -280,14 +280,14 @@ class Server {
 
         // Defaults
         $response = Response::STATUS_NOT_FOUND;
-        $content_type = ['Content-Type' => 'text/plain'];
+        $headers = ['Content-Type' => 'text/plain'];
         $body = "Not Found";
 
-        $this->handleEndpoint($uri, $method, $client, $response, $content_type, $body);
+        $this->handleEndpoint($uri, $method, $client, $response, $headers, $body);
 
         return new Response(
             $response,
-            $content_type,
+            $headers,
             $body
         );
     }
@@ -304,38 +304,29 @@ class Server {
     private function handleResource($client): null
     {
         $request = fread($client, 1024);
-        $headers = [];
-        $lines = explode(PHP_EOL, trim($request));
-        foreach ($lines as $line) {
-            if (strpos($line, ':') !== false) {
-                [$key, $value] = explode(':', $line, 2);
-                $headers[trim($key)] = [trim($value)];
-            }
-        }
-
         if ($request === false) {
             throw new Exception("Failed to read from client");
         }
-        $lines = explode(PHP_EOL, trim($request));
-        $firstLine = explode(' ', $lines[0]);
+        $client_headers = explode(PHP_EOL, trim($request));
+        $firstLine = explode(' ', array_shift($client_headers));
         $method = $firstLine[0] ?? '';
         $uri = $firstLine[1] ?? '/';
+        $protocol = $firstLine[2] ?? 'HTTP/1.1';
 
-        $response = $firstLine[2] ?? "HTTP/1.1";
-        $response .= " 200 OK";
-        $content_type = ['Content-Type' => 'application/json'];
+        $response = $protocol . " 200 OK";
+        $headers = ['Content-Type' => 'application/json'];
         $body = "";
 
         switch ($uri) {
             case '/':
             case '/verified':
                 $endpoint = new VerifiedEndpoint($this->state);
-                $endpoint->handle($method, $request, $response, $content_type, $body);
+                $endpoint->handle($method, $request, $response, $headers, $body);
                 break;
 
             default:
-                $response = "HTTP/1.1 404 Not Found" . PHP_EOL . "Content-Type: text/html" . PHP_EOL . PHP_EOL;
-                $body = "<h1>Not Found</h1>";
+                $response = "$protocol 404 Not Found" . PHP_EOL . "Content-Type: text/plain" . PHP_EOL . PHP_EOL;
+                $body = "Not Found";
                 break;
         }
 
@@ -353,9 +344,9 @@ class Server {
                 503 => "Service Unavailable",
             ];
             $statusText = $statusTexts[$response] ?? "Unknown Status";
-            $response = "HTTP/1.1 $response $statusText";
+            $response = "$protocol $response $statusText";
         }
-        if (fwrite($client, $response . PHP_EOL . implode(PHP_EOL, array_map(fn($key, $value) => "$key: $value", array_keys($content_type), $content_type)) . PHP_EOL . PHP_EOL . $body) === false) {
+        if (fwrite($client, $response . PHP_EOL . implode(PHP_EOL, array_map(fn($key, $value) => "$key: $value", array_keys($headers), $headers)) . PHP_EOL . PHP_EOL . $body) === false) {
             throw new Exception("Failed to write to client");
         }
         fclose($client);

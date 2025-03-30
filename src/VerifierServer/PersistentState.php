@@ -143,8 +143,7 @@ class PersistentState {
             if ($this->pdo->exec("DELETE FROM verify_list") === false) {
                 throw new PDOException("Failed to delete from verify_list: " . implode(", ", $this->pdo->errorInfo()));
             }
-            $stmt = $this->pdo->prepare("INSERT INTO verify_list (ss13, discord, create_time) VALUES (:ss13, :discord, :create_time)");
-            if ($stmt === false) {
+            if (($stmt = $this->pdo->prepare("INSERT INTO verify_list (ss13, discord, create_time) VALUES (:ss13, :discord, :create_time)")) === false) {
                 throw new PDOException("Failed to prepare statement.");
             }
             foreach ($list as $item) if (!$stmt->execute($item)) {

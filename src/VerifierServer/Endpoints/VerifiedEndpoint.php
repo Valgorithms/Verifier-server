@@ -56,7 +56,7 @@ class VerifiedEndpoint implements EndpointInterface
      * @param string                        $method        The HTTP method of the request (e.g., 'GET', 'POST').
      * @param ServerRequestInterface|string $request       The request payload, typically used for 'POST' requests.
      * @param string                        &$response     The variable to store the generated response.
-     * @param array                         &$content_type The variable to store the content type of the response.
+     * @param array                         &$headers      The variable to store the headers of the response.
      * @param string                        &$body         The variable to store the body of the response.
      * @param bool                          $bypass_token  Whether to bypass the token check. Default is false.
      */
@@ -64,22 +64,30 @@ class VerifiedEndpoint implements EndpointInterface
         string $method,
         ServerRequestInterface|string $request,
         int|string &$response, 
-        array &$content_type,
+        array &$headers,
         string &$body,
         bool $bypass_token = false
     ): void
     {
         switch ($method) {
             case 'GET':
-                $this->get($response, $content_type, $body);
+                $this->get($response, $headers, $body);
+                break;
+            case 'HEAD':
+                $this->head($response, $headers);
                 break;
             case 'POST':
+            case 'PUT':
             case 'DELETE':
-                $this->post($request, $response, $content_type, $body, $bypass_token);
+                $this->post($request, $response, $headers, $body, $bypass_token);
                 break;
+            case 'PATCH':
+            case 'OPTIONS':
+            case 'CONNECT':
+            case 'TRACE':
             default:
                 $response = Response::STATUS_METHOD_NOT_ALLOWED;
-                $content_type = ['Content-Type' => 'text/plain'];
+                $headers = ['Content-Type' => 'text/plain'];
                 $body = 'Method Not Allowed';
                 break;
         }
@@ -88,18 +96,45 @@ class VerifiedEndpoint implements EndpointInterface
     /**
      * Handles the GET request and prepares the response.
      *
-     * @param string &$response     The response string to be sent back to the client.
-     * @param array  &$content_type The variable to store the content type of the response.
-     * @param string &$body         The variable to store the body of the response.
+     * @param int|string &$response     The response string to be sent back to the client.
+     * @param array      &$headers      The variable to store the headers of the response.
+     * @param string     &$body         The variable to store the body of the response.
      *
-     * This method sets the HTTP status code to 200 OK and the Content-Type to application/json.
-     * It then appends the JSON-encoded verification list to the response.
+     * It appends the JSON-encoded verification list to the body of the response.
      */
-    private function get(int|string &$response, array &$content_type, string &$body): void
+    private function get(int|string &$response, array &$headers, string &$body): void
+    {
+        $body = $this->head($response, $headers);
+    }
+
+    /**
+     * Sets the HTTP response status and content type for the HEAD request.
+     *
+     * @param int|string &$response     The response string to be sent back to the client.
+     * @param array      &$headers      The variable to store the headers of the response.
+     * 
+     * @return string The content to be sent in the response body.
+     * 
+     * This method sets the HTTP status code and headers.
+     */
+    private function head(int|string &$response, array &$headers): string
     {
         $response = Response::STATUS_OK;
-        $content_type = ['Content-Type' => 'application/json'];
-        $body = json_encode($this->state->getVerifyList());
+        $headers = ['Content-Type' => 'application/json'];
+        $headers['Content-Length'] = ($content = $this->__content())
+            ? strlen($content)
+            : 0;
+        return $content;
+    }
+
+    /**
+     * Encodes the verification list retrieved from the state into a JSON string.
+     *
+     * @return string|false Returns the JSON-encoded string on success, or false on failure.
+     */
+    private function __content(): string|false
+    {
+        return json_encode($this->state->getVerifyList());
     }
 
     /**
@@ -107,7 +142,7 @@ class VerifiedEndpoint implements EndpointInterface
      *
      * @param ServerRequestInterface|string $request       The raw HTTP request string.
      * @param string                        &$response     The response string to be modified based on the request handling.
-     * @param array                         &$content_type The variable to store the content type of the response.
+     * @param array                         &$headers      The variable to store the headers of the response.
      * @param string                        &$body         The variable to store the body of the response.
      *
      * The function performs the following steps:
@@ -118,7 +153,7 @@ class VerifiedEndpoint implements EndpointInterface
      * 5. Retrieves the verification list from the state.
      * 6. Based on the method type, either deletes an entry from the list or handles the default case.
      */
-    private function post(ServerRequestInterface|string $request, int|string &$response, array &$content_type, string &$body, bool $bypass_token = false): void
+    private function post(ServerRequestInterface|string $request, int|string &$response, array &$headers, string &$body, bool $bypass_token = false): void
     {
         $formData = $request instanceof ServerRequestInterface
             ? $request->getHeaders()
@@ -141,7 +176,7 @@ class VerifiedEndpoint implements EndpointInterface
         
         if (!$bypass_token && ($this->state->getToken() === 'changeme' || $token !== $this->state->getToken())) {
             $response = Response::STATUS_UNAUTHORIZED;
-            $content_type = ['Content-Type' => 'text/plain'];
+            $headers = ['Content-Type' => 'text/plain'];
             $body = 'Unauthorized';
             return;
         }
@@ -156,7 +191,7 @@ class VerifiedEndpoint implements EndpointInterface
                     $existingIndex,
                     $list,
                     $response,
-                    $content_type,
+                    $headers,
                     $body
                 );
                 break;
@@ -166,7 +201,7 @@ class VerifiedEndpoint implements EndpointInterface
                     $ckey,
                     $discord,
                     $response,
-                    $content_type,
+                    $headers,
                     $body
                 );
                 break;
@@ -185,17 +220,17 @@ class VerifiedEndpoint implements EndpointInterface
      * @param string $ckey          The ckey to be verified.
      * @param string $discord       The discord identifier to be verified.
      * @param string &$response     The response message to be set based on the verification result.
-     * @param array  &$content_type The variable to store the content type of the response.
+     * @param array  &$headers      The variable to store the headers of the response.
      * @param string &$body         The variable to store the body of the response.
      */
-    private function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$content_type, string &$body): void
+    private function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$headers, string &$body): void
     {
         $existingCkeyIndex = array_search($ckey, array_column($list, 'ss13'));
         $existingDiscordIndex = array_search($discord, array_column($list, 'discord'));
 
         if ($existingCkeyIndex !== false || $existingDiscordIndex !== false) {
             $response = Response::STATUS_FORBIDDEN;
-            $content_type = ['Content-Type' => 'text/plain'];
+            $headers = ['Content-Type' => 'text/plain'];
             $body = 'Forbidden';
             return;
         }
@@ -206,9 +241,7 @@ class VerifiedEndpoint implements EndpointInterface
         ];
         PersistentState::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
-        $response = Response::STATUS_OK;
-        $content_type = ['Content-Type' => 'application/json'];
-        $body = json_encode($list);
+        $body = json_encode($this->head($response, $headers));
     }
 
     /**
@@ -217,14 +250,14 @@ class VerifiedEndpoint implements EndpointInterface
      * @param int|string|false $existingIndex The index of the item to delete, or false if the item does not exist.
      * @param array            &$list         The list from which the item will be deleted.
      * @param string           &$response     The HTTP response message to be returned.
-     * @param array            &$content_type The variable to store the content type of the response.
+     * @param array            &$headers      The variable to store the headers of the response.
      * @param string           &$body         The variable to store the body of the response.
      */
-    private function delete(int|string|false $existingIndex, array &$list, int|string &$response, array &$content_type, string &$body): void
+    private function delete(int|string|false $existingIndex, array &$list, int|string &$response, array &$headers, string &$body): void
     {
         if ($existingIndex === false) {
             $response = Response::STATUS_NOT_FOUND;
-            $content_type = ['Content-Type' => 'text/plain'];
+            $headers = ['Content-Type' => 'text/plain'];
             $body = 'Not Found';
             return;
         }
@@ -232,7 +265,9 @@ class VerifiedEndpoint implements EndpointInterface
         PersistentState::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
         $response = Response::STATUS_OK;
-        $content_type = ['Content-Type' => 'application/json'];
-        $body = json_encode($splice);
+        $headers = ['Content-Type' => 'application/json'];
+        $headers['Content-Length'] = ($content = json_encode($splice))
+            ? strlen($body = $content)
+            : 0;
     }
 }

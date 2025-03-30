@@ -19,14 +19,14 @@ interface EndpointInterface
      * @param string                        $method         The HTTP method of the request (e.g., 'GET', 'POST').
      * @param ServerRequestInterface|string $request        The request payload, typically used for 'POST' requests.
      * @param int|string                    &$response      The variable to store the generated response.
-     * @param array                         &$content_type  The variable to store the content type of the response.
+     * @param array                         &$headers       The variable to store the headers of the response.
      * @param string                        &$body          The variable to store the body of the response.
      */
     public function handle(
         string $method,
         ServerRequestInterface|string $request,
         int|string &$response,
-        array &$content_type,
+        array &$headers,
         string &$body
     ): void;
 }
