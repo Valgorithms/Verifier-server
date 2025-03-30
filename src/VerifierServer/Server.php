@@ -107,7 +107,7 @@ class Server {
      */
     private function initStreamSocketServer(): void
     {
-        if (! is_resource($this->server = stream_socket_server("{$this->hostAddr}", $errno, $errstr))) {
+        if (! is_resource($this->server = stream_socket_server($this->hostAddr, $errno, $errstr))) {
             throw new Exception("Failed to create server: $errstr ($errno)");
         }
     }
@@ -411,7 +411,7 @@ class Server {
     {
         if ($fatal) $this->close();
         if (isset($this->logger)) $this->logger->warning(sprintf(
-            "Error: %s" . PHP_EOL . "Line %d in %s" . PHP_EOL . "%s",
+            ($fatal ? '[FATAL] ' : '') . "Error: %s" . PHP_EOL . "Line %d in %s" . PHP_EOL . "%s",
             $e->getMessage(),
             $e->getLine(),
             $e->getFile(),
