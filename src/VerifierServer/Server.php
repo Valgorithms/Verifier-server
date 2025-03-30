@@ -53,11 +53,18 @@ class Server {
     protected $server;
 
     /**
-     * The socket server instance.
+     * The socket server.
      * 
      * @var SocketServer Socket server.
     */
     protected SocketServer $socket;
+
+    /**
+     * The persistent state.
+     * 
+     * @var PersistentState Persistent state.
+     */
+    protected PersistentState $state;
 
     /**
      * Whether the server has been initialized.
@@ -79,16 +86,11 @@ class Server {
      * 
      * @var EndpointInterface[] HTTP server endpoints.
      * */
-    private array $endpoints = [];
+    protected array $endpoints = [];
     
     public function __construct(
-        private string $hostAddr,
-        private ?PersistentState $state = null
-    ) {
-        if ($state) {
-            $this->endpoints = ['/' => new VerifiedEndpoint($state), '/verified' => &$this->endpoints['/']];
-        }
-    }
+        private string $hostAddr
+    ) {}
 
     /**
      * Initializes the server by creating a stream socket server and setting it to non-blocking mode.
@@ -100,8 +102,8 @@ class Server {
         if ($this->running) return;
         $this->initialized = true;
         ($stream_socket_server)
-            ? $this->initStreamSocketServer()
-            : $this->initReactHttpServer($loop);
+            ? $this->__initStreamSocketServer()
+            : $this->__initReactHttpServer($loop);
     }
 
     /**
@@ -112,7 +114,7 @@ class Server {
      *
      * @throws Exception If the stream socket server fails to initialize.
      */
-    private function initStreamSocketServer(): void
+    private function __initStreamSocketServer(): void
     {
         if (! is_resource($this->server = stream_socket_server($this->hostAddr, $errno, $errstr))) {
             throw new Exception("Failed to create server: $errstr ($errno)");
@@ -131,7 +133,7 @@ class Server {
      *
      * @return void
      */
-    private function initReactHttpServer(?LoopInterface $loop = null): void
+    private function __initReactHttpServer(?LoopInterface $loop = null): void
     {
         $this->server = new HttpServer(
             $this->loop = $loop instanceof LoopInterface
@@ -155,8 +157,8 @@ class Server {
         if (! $this->running) {
             $this->running = true;
             ($this->server instanceof HttpServer)
-                ? $this->startReact($start_loop)
-                : $this->startResource();
+                ? $this->__startReact($start_loop)
+                : $this->__startResource();
         }
     }
 
@@ -169,7 +171,7 @@ class Server {
      *
      * @return void
      */
-    private function startReact(bool $start_loop = false): void
+    private function __startReact(bool $start_loop = false): void
     {
         $this->server->listen($this->socket);
         if ($start_loop) $this->loop->run();
@@ -186,7 +188,7 @@ class Server {
      *
      * @return void
      */
-    private function startResource(): void
+    private function __startResource(): void
     {
         while ($this->running) {
             if (stripos(PHP_OS, 'WIN') === false && extension_loaded('pcntl')) {
@@ -206,90 +208,9 @@ class Server {
      */
     public function close(bool $stop_loop = false): void
     {
-        if ($this->running) {
-            $this->socket->close();
-            if ($stop_loop) $this->loop->stop();
-        }
-    }
-
-    /**
-     * Retrieves the event loop instance.
-     *
-     * @return LoopInterface|null The event loop instance if set, or null if not set.
-     */
-    public function getLoop(): ?LoopInterface
-    {
-        return $this->loop ?? null;
-    }
-
-    /**
-     * Retrieves the logger instance.
-     *
-     * @return LoggerInterface|null Returns the logger instance if available, or null if the logger is disabled.
-     */
-    public function getLogger(): ?LoggerInterface
-    {
-        return isset($this->logger)
-            ? $this->logger
-            : null;
-    }
-
-    /**
-     * Sets the logger instance.
-     *
-     * @param LoggerInterface|true|null $logger The logger instance to set.
-     */
-    public function setLogger(LoggerInterface|true|null $logger): void
-    {
-        $this->logger = $logger === true
-            ? new Logger('VerifierServer', [new StreamHandler('php://stdout', Level::Info)])
-            : $logger;
-    }
-
-    /**
-     * Retrieves the server instance.
-     *
-     * @return HttpServer|resource|null The server instance.
-     */
-    public function getServer()
-    {
-        return $this->server ?? null;
-    }
-
-    /**
-     * Retrieves the socket instance.
-     *
-     * @return SocketServer|null Returns the socket instance if set, or null if not set.
-     */
-    public function getSocketServer(): SocketServer|null
-    {
-        return $this->socket ?? null;
-    }
-
-    /**
-     * Retrieves the current state of the server.
-     *
-     * @return PersistentState The current state of the server.
-     */
-    public function getState(): PersistentState
-    {
-        return $this->state;
-    }
-
-    /**
-     * Converts an associative array into a request string format.
-     * Useful for forging requests in tests or applications that require internal request generation.
-     *
-     * Each key-value pair in the array is transformed into a string
-     * in the format "key: value" and concatenated with a newline character.
-     *
-     * @param array $formData The associative array to be converted.
-     * 
-     * @return string The resulting request string.
-     */
-    public static function arrayToRequestString(array $formData): string
-    {
-        return implode(PHP_EOL, array_map(fn($key, $value) => $key . ': ' . $value, array_keys($formData), $formData));
+        $this->running = false;
+        if (isset($this->socket)) $this->socket->close();
+        if (isset($this->loop) && $stop_loop) $this->loop->stop();
     }
 
     /**
@@ -409,7 +330,7 @@ class Server {
      * Logs an error message with details about the exception.
      *
      * @param Exception $e     The exception to log.
-     * @param bool       $fatal Optional. Indicates whether the error is fatal. Defaults to false.
+     * @param bool      $fatal Optional. Indicates whether the error is fatal. Defaults to false.
      *                              If true, the server will stop after logging the error.
      *
      * @return string
@@ -424,6 +345,117 @@ class Server {
             $e->getFile(),
             $e->getTraceAsString()
         ));
+    }
+
+    /**
+     * Converts an associative array into a request string format.
+     * Useful for forging requests in tests or applications that require internal request generation.
+     *
+     * Each key-value pair in the array is transformed into a string
+     * in the format "key: value" and concatenated with a newline character.
+     *
+     * @param array $formData The associative array to be converted.
+     * 
+     * @return string The resulting request string.
+     */
+    public static function arrayToRequestString(array $formData): string
+    {
+        return implode(PHP_EOL, array_map(fn($key, $value) => $key . ': ' . $value, array_keys($formData), $formData));
+    }
+
+    /**
+     * Retrieves the event loop instance.
+     *
+     * @return LoopInterface|null The event loop instance if set, or null if not set.
+     */
+    public function getLoop(): ?LoopInterface
+    {
+        return $this->loop ?? null;
+    }
+
+    /**
+     * Retrieves the logger instance.
+     *
+     * @return LoggerInterface|null Returns the logger instance if available, or null if the logger is disabled.
+     */
+    public function getLogger(): ?LoggerInterface
+    {
+        return $this->logger ?? null;
+    }
+
+    /**
+     * Retrieves the server instance.
+     *
+     * @return HttpServer|resource|null The server instance.
+     */
+    public function getServer()
+    {
+        return $this->server ?? null;
+    }
+
+    /**
+     * Retrieves the socket instance.
+     *
+     * @return SocketServer|null Returns the socket instance if set, or null if not set.
+     */
+    public function getSocketServer(): SocketServer|null
+    {
+        return $this->socket ?? null;
+    }
+
+    /**
+     * Retrieves the current state of the server.
+     *
+     * @return PersistentState|null The current state of the server.
+     */
+    public function getState(): ?PersistentState
+    {
+        return $this->state ?? null;
+    }
+
+    /**
+     * Sets the logger instance.
+     *
+     * @param LoggerInterface|true|null $logger The logger instance to set.
+     */
+    public function setLogger(LoggerInterface|true|null $logger): void
+    {
+        $this->logger = $logger === true
+            ? new Logger('VerifierServer', [new StreamHandler('php://stdout', Level::Info)])
+            : $logger;
+    }
+
+    /**
+     * Sets the state for the server instance.
+     *
+     * This method initializes the state only if it has not been set already.
+     * If the provided state is an array, it will be converted into a 
+     * PersistentState object.
+     *
+     * @param array|PersistentState $state The state to set, either as an 
+     *                                     associative array or a PersistentState object.
+     * @return void
+     */
+    public function setState(array|PersistentState $state)
+    {
+        if (isset($this->state)) return;
+        if (is_array($state)) $state = new PersistentState(...$state);
+        $this->__setVerifiedEndpoint($state);
+    }
+
+    /**
+     * Sets the state of the server and initializes the endpoints.
+     *
+     * This method checks if the `$state` property is set. If it is, it initializes
+     * the `$endpoints` property with a default endpoint and a reference to the
+     * verified endpoint.
+     *
+     * @return void
+     */
+    private function __setVerifiedEndpoint(PersistentState &$state): void
+    {
+        $this->endpoints['/verified'] = new VerifiedEndpoint($state);
+        $this->endpoints['/'] = &$this->endpoints['/verified'];
     }
 
     /**
