@@ -130,8 +130,6 @@ class Server {
      * requests via the `handleReact` method and logs errors using the `logError` method.
      *
      * @param LoopInterface|null $loop Optional event loop instance. If null, the global loop is used.
-     *
-     * @return void
      */
     private function __initReactHttpServer(?LoopInterface $loop = null): void
     {
@@ -168,8 +166,6 @@ class Server {
      * @param bool $start_loop Determines whether to start the event loop.
      *                          - If true, the event loop will be started.
      *                          - If false, the event loop will not be started.
-     *
-     * @return void
      */
     private function __startReact(bool $start_loop = false): void
     {
@@ -185,8 +181,6 @@ class Server {
      * and the `pcntl` extension is loaded, it dispatches pending signals
      * using `pcntl_signal_dispatch`. When a client connection is accepted,
      * it delegates the handling of the connection to the `handleResource` method.
-     *
-     * @return void
      */
     private function __startResource(): void
     {
@@ -435,9 +429,8 @@ class Server {
      *
      * @param array|PersistentState $state The state to set, either as an 
      *                                     array of options or a PersistentState object.
-     * @return void
      */
-    public function setState(array|PersistentState $state)
+    public function setState(array|PersistentState $state): void
     {
         if (isset($this->state)) return;
         if (is_array($state)) $state = new PersistentState(...$state);
@@ -451,8 +444,6 @@ class Server {
      * This method checks if the `$state` property is set. If it is, it initializes
      * the `$endpoints` property with a default endpoint and a reference to the
      * verified endpoint.
-     *
-     * @return void
      */
     private function __setVerifiedEndpoint(PersistentState &$state): void
     {

@@ -284,8 +284,6 @@ class PersistentState {
 
     /**
      * Reinitializes the PDO object after deserialization.
-     *
-     * @return void
      */
     public function __wakeup(): void
     {
