@@ -280,21 +280,11 @@ class Server {
         $uri = $firstLine[1] ?? '/';
         $protocol = $firstLine[2] ?? 'HTTP/1.1';
 
-        $response = $protocol . " 200 OK";
-        $headers = ['Content-Type' => 'application/json'];
-        $body = "";
-
-        switch ($uri) {
-            case '/':
-            case '/verified':
-                $this->endpoints['/verified']->handle($method, $request, $response, $headers, $body);
-                break;
-
-            default:
-                $response = "$protocol 404 Not Found" . PHP_EOL . "Content-Type: text/plain" . PHP_EOL . PHP_EOL;
-                $body = "Not Found";
-                break;
-        }
+        $response = "$protocol 404 Not Found" . PHP_EOL . "Content-Type: text/plain" . PHP_EOL . PHP_EOL;
+        $headers = ['Content-Type' => 'text/plain'];
+        $body = "Not Found";
+        
+        $this->handleEndpoint($uri, $method, $request, $response, $headers, $body);
 
         if (is_int($response)) {
             $statusTexts = [
