@@ -46,7 +46,7 @@ use VerifierServer\PersistentState;
  */
 class VerifiedEndpoint implements EndpointInterface
 {
-    use ResponseParserTrait;
+    use RequestParserTrait;
 
     public function __construct(private PersistentState &$state)
     {}

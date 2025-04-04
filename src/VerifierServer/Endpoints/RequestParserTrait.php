@@ -3,13 +3,13 @@
 namespace VerifierServer\Endpoints;
 
 /**
- * Trait ResponseParserTrait
+ * Trait RequestParserTrait
  *
  * Provides functionality to parse data from a raw HTTP request string.
  *
  * @package VerifierServer\Endpoints
  */
-trait ResponseParserTrait
+trait RequestParserTrait
 {
     /**
      * Parses the headers from a raw HTTP request string.
