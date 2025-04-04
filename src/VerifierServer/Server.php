@@ -13,8 +13,8 @@ use React\EventLoop\LoopInterface;
 use React\Http\HttpServer;
 use React\Http\Message\Response;
 use React\Socket\SocketServer;
-use VerifierServer\Endpoints\VerifiedEndpoint;
 use VerifierServer\Endpoints\EndpointInterface;
+use VerifierServer\Endpoints\VerifiedEndpoint;
 
 use Exception;
 use Throwable;
@@ -287,8 +287,7 @@ class Server {
         switch ($uri) {
             case '/':
             case '/verified':
-                $endpoint = new VerifiedEndpoint($this->state);
-                $endpoint->handle($method, $request, $response, $headers, $body);
+                $this->endpoints['/verified']->handle($method, $request, $response, $headers, $body);
                 break;
 
             default:
