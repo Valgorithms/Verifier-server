@@ -241,7 +241,7 @@ class VerifiedEndpoint implements EndpointInterface
         ];
         PersistentState::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
-        $body = json_encode($this->head($response, $headers));
+        $body = $this->head($response, $headers);
     }
 
     /**
