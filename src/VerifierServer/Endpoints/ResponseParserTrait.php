@@ -3,13 +3,13 @@
 namespace VerifierServer\Endpoints;
 
 /**
- * Trait HeaderParserTrait
+ * Trait ResponseParserTrait
  *
- * Provides functionality to parse HTTP request headers from a raw HTTP request string.
+ * Provides functionality to parse data from a raw HTTP request string.
  *
  * @package VerifierServer\Endpoints
  */
-trait HeaderParserTrait
+trait ResponseParserTrait
 {
     /**
      * Parses the headers from a raw HTTP request string.
@@ -23,7 +23,7 @@ trait HeaderParserTrait
      * @return array An associative array of headers, where the keys are
      *               header names and the values are header values.
      */
-    static function parseHeaders(string $request): array
+    public static function parseHeaders(string $request): array
     {
         return array_reduce(
             explode(PHP_EOL, $request), fn($carry, $line) =>
@@ -31,5 +31,20 @@ trait HeaderParserTrait
                     ? $carry += [trim(strtok($line, ':')) => trim(substr($line, strpos($line, ':') + 1))]
                     : $carry,
             []);
+    }
+
+    /**
+     * Parses the query parameters from a given request URL string.
+     *
+     * This method extracts the query string from the provided URL,
+     * parses it into an associative array, and returns the result.
+     *
+     * @param string $request The full URL string containing the query parameters.
+     * @return array An associative array of query parameters.
+     */
+    public static function parseQueryParams(string $request): array
+    {
+        parse_str(parse_url($request, PHP_URL_QUERY), $params);
+        return $params;
     }
 }
