@@ -22,24 +22,21 @@ class USPSEndpoint implements EndpointInterface
     CONST BASE_URL  = 'http://production.shippingapis.com/ShippingAPITest.dll?API=ZipCodeLookup&XML=';
     CONST INFO      = 'Information provided by www.usps.com';
 
-    public string $userid;
     public string $id       = '0';
     public string $address1 = '';
-    public string $address2 = '6406 Ivy Lane';
-    public string $city     = 'Greenbelt';
+    public string $address2 = '6406 IVY LANE';
+    public string $city     = 'GREENBELT';
     public string $state    = 'MD';
     public string $zip5     = '20770';
     public string $zip4     = '1441';
 
-    public function __construct()
+    public function __construct(public string $userid)
     {
-        $this->userid = $_ENV['USPS_USERID']
-            ?: throw new RuntimeException('USPS_USERID environment variable not set.');
     }
 
     public function handle(
         string $method,
-        ServerRequestInterface|string $request,
+        $request,
         int|string &$response,
         array &$headers,
         string &$body,
