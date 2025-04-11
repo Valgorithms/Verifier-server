@@ -15,10 +15,8 @@ use SimpleXMLElement;
  * such as GET, HEAD, and POST, and generates XML requests to interact
  * with the USPS API.
  */
-class USPSEndpoint implements EndpointInterface
+class USPSEndpoint extends Endpoint
 {
-    use RequestParserTrait;
-
     CONST BASE_URL  = 'http://production.shippingapis.com/ShippingAPITest.dll?API=ZipCodeLookup&XML=';
     CONST INFO      = 'Information provided by www.usps.com';
 
@@ -118,7 +116,7 @@ class USPSEndpoint implements EndpointInterface
         $params = $request instanceof ServerRequestInterface
             ? $request->getQueryParams()
             : (is_string($request)
-                ? self::getQueryParams($request)
+                ? $this->getQueryParams($request)
                 : []);
 
         $requiredFields = ['address2', 'city', 'state'];
