@@ -2,6 +2,8 @@
 
 namespace VerifierServer\Endpoints;
 
+//use Psr\Http\Message\MessageInterface;
+//use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -24,7 +26,7 @@ interface EndpointInterface
      */
     public function handle(
         string $method,
-        ServerRequestInterface|string $request,
+        $request,
         int|string &$response,
         array &$headers,
         string &$body
