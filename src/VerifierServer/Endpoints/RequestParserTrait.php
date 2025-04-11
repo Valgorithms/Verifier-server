@@ -42,7 +42,7 @@ trait RequestParserTrait
      * @param string $request The full URL string containing the query parameters.
      * @return array An associative array of query parameters.
      */
-    public static function parseQueryParams(string $request): array
+    public static function getQueryParams(string $request): array
     {
         parse_str(parse_url($request, PHP_URL_QUERY), $params);
         return $params;
