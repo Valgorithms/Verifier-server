@@ -236,11 +236,11 @@ class OAuth2Authenticator
 
     public function getUser(): ?object
     {
-        if (! isset($this->issuer, $this->userinfo_endpoint)) {
-            return null;
-        }
         if (isset($this->user)) {
             return $this->user;
+        }
+        if (! isset($this->issuer, $this->userinfo_endpoint, $this->access_token)) {
+            return null;
         }
         return $this->user = $this->apiRequest("{$this->issuer}{$this->userinfo_endpoint}");
     }
