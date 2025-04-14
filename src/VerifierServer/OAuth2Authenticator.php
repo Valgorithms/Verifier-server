@@ -210,7 +210,7 @@ class OAuth2Authenticator
             return null;
         }
 
-        $token = $this->apiRequest(
+        $api_response = $this->apiRequest(
             "{$this->issuer}{$this->token_endpoint}",
             [
                 'client_id' => $this->client_id,
@@ -221,17 +221,17 @@ class OAuth2Authenticator
             ]
         );
 
-        if (isset($token->error)) {
+        if (isset($api_response->error)) {
             $response = Response::STATUS_BAD_REQUEST;
             $headers = ['Content-Type' => 'text/plain'];
-            $body = 'Error: ' . $token->error;
+            $body = 'Error: ' . $api_response->error;
             return null;
         }
         
         $response = Response::STATUS_FOUND;
         $headers = ['Location' => $this->redirect_home];
         $body = '';
-        return $this->sessions[$this->requesting_ip]['access_token'] = $token->access_token;
+        return $this->sessions[$this->requesting_ip]['access_token'] = $api_response->access_token;
     }
 
     public function getUser(): ?object
