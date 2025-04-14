@@ -82,7 +82,8 @@ class OAuth2Endpoint extends Endpoint
         }
         $params = $request->getQueryParams();
         
-        $OAA = new OAuth2Authenticator(
+        $OAA = null ?? // TODO: Attempt to retrieve the OAuth2Authenticator instance from the cache
+        new OAuth2Authenticator(
             $request,
             $this->sessions,
             $this->resolved_ip,
