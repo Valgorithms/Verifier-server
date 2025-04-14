@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace VerifierServer\Endpoints;
+namespace VerifierServer\Endpoints\Interfaces;
 
 //use Psr\Http\Message\MessageInterface;
 //use Psr\Http\Message\RequestInterface;

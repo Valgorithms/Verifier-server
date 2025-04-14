@@ -3,7 +3,8 @@
 namespace VerifierServer\Endpoints;
 
 use React\Http\Message\Response;
-use Psr\Http\Message\ServerRequestInterface;
+use VerifierServer\Endpoints\Interfaces\EndpointInterface;
+use VerifierServer\Endpoints\Traits\RequestParserTrait;
 
 class Endpoint implements EndpointInterface
 {
