@@ -4,8 +4,11 @@ namespace VerifierServer\Endpoints;
 
 use Psr\Http\Message\ServerRequestInterface;
 use React\Http\Message\Response;
-use RuntimeException;
 use SimpleXMLElement;
+use VerifierServer\Endpoint;
+
+use RuntimeException;
+
 
 /**
  * Class USPSEndpoint

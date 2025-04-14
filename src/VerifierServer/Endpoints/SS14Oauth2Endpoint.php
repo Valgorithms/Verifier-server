@@ -8,6 +8,7 @@
 
 namespace VerifierServer\Endpoints;
 
+use VerifierServer\Endpoint;
 use Psr\Http\Message\ServerRequestInterface;
 use React\Http\Message\Response;
 use SS14\OAuth2Authenticator;
@@ -82,11 +83,11 @@ class SS14Oauth2Endpoint extends Endpoint
         $params = $request->getQueryParams();
         
         $OAA = new OAuth2Authenticator(
+            $request,
             $this->sessions,
             $this->resolved_ip,
             $this->web_address,
             $this->http_port,
-            $request,
             $this->SS14_OAUTH2_CLIENT_ID,
             $this->SS14_OAUTH2_CLIENT_SECRET,
         );

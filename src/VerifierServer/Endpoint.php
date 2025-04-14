@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace VerifierServer\Endpoints;
+namespace VerifierServer;
 
 use React\Http\Message\Response;
 use VerifierServer\Endpoints\Interfaces\EndpointInterface;

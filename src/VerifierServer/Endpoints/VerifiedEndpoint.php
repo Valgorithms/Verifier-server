@@ -4,6 +4,7 @@ namespace VerifierServer\Endpoints;
 
 use React\Http\Message\Response;
 use Psr\Http\Message\ServerRequestInterface;
+use VerifierServer\Endpoint;
 use VerifierServer\PersistentState;
 
 /**

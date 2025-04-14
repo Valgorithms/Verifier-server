@@ -54,11 +54,11 @@ class OAuth2Authenticator
      * @throws \RuntimeException If the provided request is not an instance of ServerRequestInterface.
      */
     public function __construct(
+        $request,
         protected array &$sessions,
         string $resolved_ip,
         string $web_address,
         int $http_port,
-        $request,
         protected string $client_id,
         protected string $client_secret,
         protected string $endpoint_name = 'ss14wa',
