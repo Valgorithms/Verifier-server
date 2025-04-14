@@ -14,10 +14,13 @@ use React\Http\HttpServer;
 use React\Http\Message\Response;
 use React\Socket\SocketServer;
 use VerifierServer\Endpoints\EndpointInterface;
+use VerifierServer\Endpoints\SS14Oauth2Endpoint;
+//use VerifierServer\Endpoints\USPSEndpoint;
 use VerifierServer\Endpoints\VerifiedEndpoint;
 
 use Exception;
 use Throwable;
+
 use function pcntl_signal_dispatch;
 
 /**
@@ -35,7 +38,7 @@ class Server {
     * The ReactPHP event loop.
      * 
      * @var LoopInterface Event loop.
-     * */
+     */
     protected LoopInterface $loop;
 
     /**
@@ -49,7 +52,7 @@ class Server {
      * The server instance.
      * 
      * @var HttpServer|resource|null HTTP server.
-     * */
+     */
     protected $server;
 
     /**
@@ -85,12 +88,31 @@ class Server {
      * The server's endpoints.
      * 
      * @var EndpointInterface[] HTTP server endpoints.
-     * */
+     */
     protected array $endpoints = [];
+
+    protected string $resolved_ip;
+
+    /**
+     * The IP sessions.
+     * 
+     * @var array IP sessions.
+     */
+    protected array $ip_sessions;
     
     public function __construct(
-        private string $hostAddr
-    ) {}
+        protected string $addr,
+        protected ?int $port = null
+    ) {
+        if (empty($port) && !str_contains($addr, ':')) {
+            throw new Exception("Invalid address: $addr. Port is required.");
+        }
+        
+        if (str_contains($addr, ':')) {
+            [$this->addr, $port] = explode(':', $addr);
+            $this->port = (int)$port;
+        }
+    }
 
     /**
      * Initializes the server by creating a stream socket server and setting it to non-blocking mode.
@@ -116,7 +138,7 @@ class Server {
      */
     private function __initStreamSocketServer(): void
     {
-        if (! is_resource($this->server = stream_socket_server($this->hostAddr, $errno, $errstr))) {
+        if (! is_resource($this->server = stream_socket_server("{$this->addr}:{$this->port}", $errno, $errstr))) {
             throw new Exception("Failed to create server: $errstr ($errno)");
         }
     }
@@ -139,7 +161,7 @@ class Server {
                 : Loop::get(),
             fn($request) => $this->handleReact($request)
         )->on('error', fn(Throwable $e) => $this->logError($e, true));
-        $this->socket = new SocketServer($this->hostAddr, [], $this->loop);
+        $this->socket = new SocketServer("{$this->addr}:{$this->port}", [], $this->loop);
     }
 
     /**
@@ -396,6 +418,24 @@ class Server {
         return $this->state ?? null;
     }
 
+    public function getResolvedIp(): string
+    {
+        if (!filter_var($addr = $this->resolved_ip ?? $this->resolved_ip = gethostbyname($this->getWebAddress()), FILTER_VALIDATE_IP)) {
+            throw new Exception("Resolved address is not a valid IP: $addr");
+        }
+
+        return $addr;
+    }
+    public function getWebAddress(): string
+    {
+        return $_ENV['SS14_WEB_ADDRESS']
+            ?? $this->addr;
+    }
+    public function getHttpPort(): int
+    {
+        return (int) $_ENV['HOST_PORT'];
+    }
+
     /**
      * Sets the logger instance.
      *
@@ -425,6 +465,8 @@ class Server {
         if (is_array($state)) $state = new PersistentState(...$state);
         $this->state = $state;
         $this->__setVerifiedEndpoint($state);
+        $this->__setWebAuthEndpoint();
+        //$this->endpoints['/usps'] = new USPSEndpoint($_ENV['USPS_USERID']);
     }
 
     /**
@@ -438,6 +480,17 @@ class Server {
     {
         $this->endpoints['/verified'] = new VerifiedEndpoint($state);
         $this->endpoints['/'] = &$this->endpoints['/verified'];
+    }
+
+    private function __setWebAuthEndpoint(): void
+    {
+        $this->ip_sessions = $this->ip_sessions ?? [];
+        $this->endpoints['/ss14wa'] = new SS14Oauth2Endpoint(
+            $this->ip_sessions,
+            $this->getResolvedIp(),
+            $this->getWebAddress(),
+            $this->getHttpPort(),
+        );
     }
 
     /**
