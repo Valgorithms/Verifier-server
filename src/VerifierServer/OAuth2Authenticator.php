@@ -249,4 +249,11 @@ class OAuth2Authenticator
     {
         return isset($this->user);
     }
+
+    public function __debugInfo(): array
+    {
+        $debugInfo = get_object_vars($this);
+        unset($debugInfo['client_id'], $debugInfo['client_secret']);
+        return $debugInfo;
+    }
 }

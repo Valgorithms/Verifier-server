@@ -8,20 +8,22 @@
 
 namespace SS14\Endpoints;
 
-use VerifierServer\Endpoint;
 use Psr\Http\Message\ServerRequestInterface;
 use React\Http\Message\Response;
 use SS14\OAuth2Authenticator;
+use VerifierServer\Endpoint;
 
 class OAuth2Endpoint extends Endpoint
 {
+    protected array $cache = [];
+
     public function __construct(
         public array &$sessions,
         protected string $resolved_ip,
         protected string $web_address,
         protected int $http_port,
-        protected string $SS14_OAUTH2_CLIENT_ID,
-        protected string $SS14_OAUTH2_CLIENT_SECRET,
+        protected string $client_id,
+        protected string $client_secret,
     ){}
 
     /**
@@ -80,18 +82,26 @@ class OAuth2Endpoint extends Endpoint
             $body = 'Method Not Allowed';
             return;
         }
-        $params = $request->getQueryParams();
-        
-        $OAA = null ?? // TODO: Attempt to retrieve the OAuth2Authenticator instance from the cache
-        new OAuth2Authenticator(
-            $request,
-            $this->sessions,
-            $this->resolved_ip,
-            $this->web_address,
-            $this->http_port,
-            $this->SS14_OAUTH2_CLIENT_ID,
-            $this->SS14_OAUTH2_CLIENT_SECRET,
-        );
+        if (!$params = $request->getQueryParams()) {
+            $response = Response::STATUS_BAD_REQUEST;
+            $headers = ['Content-Type' => 'text/plain'];
+            $body = 'Bad Request';
+            return;
+        }
+
+        $requesting_ip = $request->getServerParams()['REMOTE_ADDR'] ?? '127.0.0.1'; // For session management, will be deprecated in favor of a more robust solution
+        $OAA =
+            &$this->cache[$requesting_ip]['OAuth2Authenticator'] ??
+            $this->cache[$requesting_ip]['OAuth2Authenticator'] = new OAuth2Authenticator(
+                $request,
+                $this->sessions,
+                $this->resolved_ip,
+                $this->web_address,
+                $this->http_port,
+                $this->client_id,
+                $this->client_secret
+            );
+        /** @var OAuth2Authenticator $OAA */
 
         if (isset($params['code'], $params['state'])) {
             /*$token =*/ $OAA->getToken($response, $headers, $body, $params['code'], $params['state']);
@@ -127,10 +137,24 @@ class OAuth2Endpoint extends Endpoint
         $this->get($request, $response, $headers, $body);
     }
 
+    public function __serialize(): array
+    {
+        $data = get_object_vars($this);
+        unset($data['client_id'], $data['client_secret']);
+        return $data;
+    }
+
+    public function __unserialize(array $data): void
+    {
+        foreach ($data as $key => $value) $this->$key = $value;
+        $this->client_id = $_ENV['SS14_OAUTH2_CLIENT_ID'] ?? getenv('SS14_OAUTH2_CLIENT_ID') ?: '';
+        $this->client_secret = $_ENV['SS14_OAUTH2_CLIENT_SECRET'] ?? getenv('SS14_OAUTH2_CLIENT_SECRET') ?: '';
+    }
+
     public function __debugInfo(): array
     {
         $debugInfo = get_object_vars($this);
-        unset($debugInfo['SS14_OAUTH2_CLIENT_ID'], $debugInfo['SS14_OAUTH2_CLIENT_SECRET']);
+        unset($debugInfo['client_id'], $debugInfo['client_secret']);
         return $debugInfo;
     }
 }
