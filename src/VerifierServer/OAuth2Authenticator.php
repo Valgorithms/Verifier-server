@@ -27,12 +27,12 @@ class OAuth2Authenticator
     protected string $default_redirect;
     protected string $redirect_home;
     protected array $allowed_uri = [];
-
-    protected string $requesting_ip;
+    
     protected string $state;
     protected ?string $access_token = null;
-    public ?object $user = null;
+    protected ?object $user = null;
 
+    protected string $requesting_ip; // For session management, will be deprecated in favor of a more robust solution
     
 
     /**
@@ -203,34 +203,35 @@ class OAuth2Authenticator
             return null;
         }
 
-        if ($state === $this->state) {
-            $token = $this->apiRequest(
-                "{$this->issuer}{$this->token_endpoint}",
-                [
-                    'client_id' => $this->client_id,
-                    'client_secret' => $this->client_secret,
-                    'grant_type' => 'authorization_code',
-                    'code' => $code,
-                    'redirect_uri' => $redirect_uri ?: $this->default_redirect,
-                ]
-            );
-
-            if (isset($token->error)) {
-                $response = Response::STATUS_BAD_REQUEST;
-                $headers = ['Content-Type' => 'text/plain'];
-                $body = 'Error: ' . $token->error;
-                return null;
-            }
-            
-            $response = Response::STATUS_FOUND;
-            $headers = ['Location' => $this->redirect_home];
-            $body = '';
-            return $this->sessions[$this->requesting_ip]['access_token'] = $token->access_token;
+        if ($state !== $this->state) {
+            $response = Response::STATUS_BAD_REQUEST;
+            $headers = ['Content-Type' => 'text/plain'];
+            $body = 'Invalid state.';
+            return null;
         }
-        $response = Response::STATUS_BAD_REQUEST;
-        $headers = ['Content-Type' => 'text/plain'];
-        $body = 'Invalid state.';
-        return null;
+
+        $token = $this->apiRequest(
+            "{$this->issuer}{$this->token_endpoint}",
+            [
+                'client_id' => $this->client_id,
+                'client_secret' => $this->client_secret,
+                'grant_type' => 'authorization_code',
+                'code' => $code,
+                'redirect_uri' => $redirect_uri ?: $this->default_redirect,
+            ]
+        );
+
+        if (isset($token->error)) {
+            $response = Response::STATUS_BAD_REQUEST;
+            $headers = ['Content-Type' => 'text/plain'];
+            $body = 'Error: ' . $token->error;
+            return null;
+        }
+        
+        $response = Response::STATUS_FOUND;
+        $headers = ['Location' => $this->redirect_home];
+        $body = '';
+        return $this->sessions[$this->requesting_ip]['access_token'] = $token->access_token;
     }
 
     public function getUser(): ?object
