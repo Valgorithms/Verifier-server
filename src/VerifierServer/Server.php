@@ -102,15 +102,15 @@ class Server {
     
     public function __construct(
         protected string $addr,
-        protected ?int $port = null
+        protected int $port = 16261
     ) {
         if (empty($port) && !str_contains($addr, ':')) {
             throw new Exception("Invalid address: $addr. Port is required.");
         }
-        
-        if (str_contains($addr, ':')) {
-            [$this->addr, $port] = explode(':', $addr);
-            $this->port = (int)$port;
+        if (str_contains($this->addr, ':')) {
+            $array = explode(':', $this->addr);
+            $this->addr = $array[0];
+            $this->port = (int) $array[1];
         }
     }
 
@@ -429,11 +429,8 @@ class Server {
     public function getWebAddress(): string
     {
         return $_ENV['SS14_WEB_ADDRESS']
+            ?? getenv('SS14_WEB_ADDRESS')
             ?? $this->addr;
-    }
-    public function getHttpPort(): int
-    {
-        return (int) $_ENV['HOST_PORT'];
     }
 
     /**
@@ -465,8 +462,7 @@ class Server {
         if (is_array($state)) $state = new PersistentState(...$state);
         $this->state = $state;
         $this->__setVerifiedEndpoint($state);
-        $this->__setWebAuthEndpoint();
-        //$this->endpoints['/usps'] = new USPSEndpoint($_ENV['USPS_USERID']);
+        //$this->endpoints['/usps'] = new USPSEndpoint($_ENV['USPS_USERID'] ?? getenv('USPS_USERID'));
     }
 
     /**
@@ -482,14 +478,19 @@ class Server {
         $this->endpoints['/'] = &$this->endpoints['/verified'];
     }
 
-    private function __setWebAuthEndpoint(): void
+    public function setOAUth2Endpoint(
+        string $SS14_OAUTH2_CLIENT_ID,
+        string $SS14_OAUTH2_CLIENT_SECRET
+    ): void
     {
         $this->ip_sessions = $this->ip_sessions ?? [];
         $this->endpoints['/ss14wa'] = new SS14Oauth2Endpoint(
             $this->ip_sessions,
             $this->getResolvedIp(),
             $this->getWebAddress(),
-            $this->getHttpPort(),
+            $this->port,
+            $SS14_OAUTH2_CLIENT_ID,
+            $SS14_OAUTH2_CLIENT_SECRET,
         );
     }
 

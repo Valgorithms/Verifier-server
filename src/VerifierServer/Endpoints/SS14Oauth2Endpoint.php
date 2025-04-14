@@ -19,6 +19,8 @@ class SS14Oauth2Endpoint extends Endpoint
         protected string $resolved_ip,
         protected string $web_address,
         protected int $http_port,
+        protected string $SS14_OAUTH2_CLIENT_ID,
+        protected string $SS14_OAUTH2_CLIENT_SECRET,
     ){}
 
     /**
@@ -85,8 +87,8 @@ class SS14Oauth2Endpoint extends Endpoint
             $this->web_address,
             $this->http_port,
             $request,
-            $_ENV['SS14_OAUTH2_CLIENT_ID'],
-            $_ENV['SS14_OAUTH2_CLIENT_SECRET'],
+            $this->SS14_OAUTH2_CLIENT_ID,
+            $this->SS14_OAUTH2_CLIENT_SECRET,
         );
 
         if (isset($params['code'], $params['state'])) {

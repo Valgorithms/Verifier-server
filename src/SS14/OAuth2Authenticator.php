@@ -72,7 +72,7 @@ class OAuth2Authenticator
         $this->params = $request->getQueryParams();
         $this->requesting_ip = $request->getServerParams()['REMOTE_ADDR'] ?? '127.0.0.1';
         $scheme = 'http'; //$request->getUri()->getScheme();
-        if ($host = $request->getUri()->getHost() === '127.0.0.1') $host = $resolved_ip; // Should only happen when testing on localhost
+        if (($host = $request->getUri()->getHost()) === '127.0.0.1') $host = $resolved_ip; // Should only happen when testing on localhost
         $path = $request->getUri()->getPath();
         $this->default_redirect = "$scheme://$host:$http_port" . explode('?', $path)[0];
 
@@ -143,7 +143,7 @@ class OAuth2Authenticator
                 'response_type' => 'code',
                 'scope' => $scope ?? $this->scope,
                 'state' => $this->state,
-                'redirect_uri' => $redirect_uri,
+                'redirect_uri' => $redirect_uri ?? $this->default_redirect,
             ])];
         $body = '';
     }
