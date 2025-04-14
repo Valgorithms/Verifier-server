@@ -19,4 +19,8 @@ $server->setState([
     $envConfig['STORAGE_TYPE'] ?? 'filesystem',
     $envConfig['JSON_PATH'] ?? 'json/verify.json',
 ]);
+$server->setOAUth2Endpoint(
+    $_ENV['SS14_OAUTH2_CLIENT_ID'] ?? getenv('SS14_OAUTH2_CLIENT_ID'),
+    $_ENV['SS14_OAUTH2_CLIENT_SECRET'] ?? getenv('SS14_OAUTH2_CLIENT_SECRET')
+);
 $server->start(true); // Start the server and the event loop

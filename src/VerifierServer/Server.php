@@ -430,7 +430,7 @@ class Server {
     {
         return $_ENV['SS14_WEB_ADDRESS']
             ?? getenv('SS14_WEB_ADDRESS')
-            ?? $this->addr;
+            ?: $this->addr;
     }
 
     /**

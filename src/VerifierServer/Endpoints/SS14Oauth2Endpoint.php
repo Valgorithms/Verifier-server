@@ -124,4 +124,11 @@ class SS14Oauth2Endpoint extends Endpoint
     {
         $this->get($request, $response, $headers, $body);
     }
+
+    public function __debugInfo(): array
+    {
+        $debugInfo = get_object_vars($this);
+        unset($debugInfo['SS14_OAUTH2_CLIENT_ID'], $debugInfo['SS14_OAUTH2_CLIENT_SECRET']);
+        return $debugInfo;
+    }
 }
