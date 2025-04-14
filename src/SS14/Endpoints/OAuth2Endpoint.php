@@ -6,14 +6,14 @@
  * Copyright (c) 2025-present Valithor Obsidion <valithor@valzargaming.com>
  */
 
-namespace VerifierServer\Endpoints;
+namespace SS14\Endpoints;
 
 use VerifierServer\Endpoint;
 use Psr\Http\Message\ServerRequestInterface;
 use React\Http\Message\Response;
 use SS14\OAuth2Authenticator;
 
-class SS14Oauth2Endpoint extends Endpoint
+class OAuth2Endpoint extends Endpoint
 {
     public function __construct(
         public array &$sessions,

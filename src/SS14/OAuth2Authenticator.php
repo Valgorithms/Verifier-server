@@ -8,7 +8,7 @@
 
 namespace SS14;
 
-use VerifierServer\Helpers\OAuth2Authenticator as __OAuth2Authenticator;
+use VerifierServer\OAuth2Authenticator as __OAuth2Authenticator;
 
 class OAuth2Authenticator extends __OAuth2Authenticator
 {

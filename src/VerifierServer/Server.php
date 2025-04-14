@@ -13,8 +13,8 @@ use React\EventLoop\LoopInterface;
 use React\Http\HttpServer;
 use React\Http\Message\Response;
 use React\Socket\SocketServer;
-use VerifierServer\Endpoints\EndpointInterface;
-use VerifierServer\Endpoints\SS14Oauth2Endpoint;
+use SS14\Endpoints\OAuth2Endpoint as SS14OAuth2Endpoint;
+use VerifierServer\Endpoints\Interfaces\EndpointInterface;
 //use VerifierServer\Endpoints\USPSEndpoint;
 use VerifierServer\Endpoints\VerifiedEndpoint;
 
@@ -484,7 +484,7 @@ class Server {
     ): void
     {
         $this->ip_sessions = $this->ip_sessions ?? [];
-        $this->endpoints['/ss14wa'] = new SS14Oauth2Endpoint(
+        $this->endpoints['/ss14wa'] = new SS14OAuth2Endpoint(
             $this->ip_sessions,
             $this->getResolvedIp(),
             $this->getWebAddress(),

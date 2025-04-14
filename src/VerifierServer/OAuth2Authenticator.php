@@ -6,7 +6,7 @@
  * Copyright (c) 2025-present Valithor Obsidion <valithor@valzargaming.com>
  */
 
-namespace VerifierServer\Helpers;
+namespace VerifierServer;
 
 use Psr\Http\Message\ServerRequestInterface;
 use React\Http\Message\Response;
