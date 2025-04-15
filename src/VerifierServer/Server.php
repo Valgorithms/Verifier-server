@@ -13,6 +13,7 @@ use React\EventLoop\LoopInterface;
 use React\Http\HttpServer;
 use React\Http\Message\Response;
 use React\Socket\SocketServer;
+use React\Http\Message\ServerRequest;
 use SS14\Endpoints\OAuth2Endpoint as SS14OAuth2Endpoint;
 use VerifierServer\Endpoints\Interfaces\EndpointInterface;
 //use VerifierServer\Endpoints\USPSEndpoint;
@@ -212,7 +213,7 @@ class Server {
             }
             ($client = @stream_socket_accept($this->server, 0))
                 ? $this->handleResource($client)
-                : $this->logError(new Exception("Failed to accept client connection"), true);
+                : null; //$this->logError(new Exception("Failed to accept client connection"), false);
         }
     }
 
@@ -293,20 +294,47 @@ class Server {
     private function handleResource($client): null
     {
         $request = fread($client, 1024);
+        var_dump($request);
         if ($request === false) {
             throw new Exception("Failed to read from client");
         }
-        $client_headers = explode(PHP_EOL, trim($request));
+        if (! $sender = stream_socket_get_name($client, false)) { // "ip:port"
+            throw new Exception("Failed to get client name");
+        }
+        //var_dump($sender);
+        $requester = explode($sender, ':');
+
+        $client_headers = explode(PHP_EOL, trim($request)) ?: [];
         $firstLine = explode(' ', array_shift($client_headers));
-        $method = $firstLine[0] ?? '';
+        $method = $firstLine[0] ?? 'GET';
         $uri = $firstLine[1] ?? '/';
         $protocol = $firstLine[2] ?? 'HTTP/1.1';
+
+        $server_request = new ServerRequest(
+            $method,
+            $uri,
+            array_reduce($client_headers, function ($carry, $header) {
+                $explode = explode(': ', $header, 2);
+                $key = $explode[0];
+                $value = $explode[1] ?? '';
+                $carry[$key] = trim($value);
+                return $carry;
+            }, []),
+            '',
+            '1.1',
+            [
+                'REMOTE_ADDR' => $requester[0] ?? $this->addr,
+                'REMOTE_PORT' => $requester[1] ?? $this->port,
+                'SERVER_ADDR' => $this->addr,
+                'SERVER_PORT' => $this->port,
+            ]
+        );
 
         $response = "$protocol 404 Not Found" . PHP_EOL . "Content-Type: text/plain" . PHP_EOL . PHP_EOL;
         $headers = ['Content-Type' => 'text/plain'];
         $body = "Not Found";
         
-        $this->handleEndpoint($uri, $method, $request, $response, $headers, $body);
+        $this->handleEndpoint($uri, $method, $server_request, $response, $headers, $body);
 
         if (is_int($response)) {
             $statusTexts = [
