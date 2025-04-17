@@ -18,7 +18,7 @@ class OAuth2Endpoint extends Endpoint
     protected array $cache = [];
 
     public function __construct(
-        public array &$sessions,
+        protected array &$sessions,
         protected string $resolved_ip,
         protected string $web_address,
         protected int $http_port,
@@ -54,7 +54,6 @@ class OAuth2Endpoint extends Endpoint
             case 'PATCH':
             case 'OPTIONS':
             case 'CONNECT':
-            case 'TRACE':
             default:
                 $response = Response::STATUS_METHOD_NOT_ALLOWED;
                 $headers = ['Content-Type' => 'text/plain'];

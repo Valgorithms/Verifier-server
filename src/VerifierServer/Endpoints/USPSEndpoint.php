@@ -49,7 +49,8 @@ class USPSEndpoint extends Endpoint
                 $this->get($request, $response, $headers, $body);
                 break;
             case 'HEAD':
-                $this->head($response, $headers);
+                $this->get($request, $response, $headers, $body);
+                $body = '';
                 break;
             case 'POST':
                 $this->post($request, $response, $headers, $body);
@@ -59,7 +60,6 @@ class USPSEndpoint extends Endpoint
             case 'PATCH':
             case 'OPTIONS':
             case 'CONNECT':
-            case 'TRACE':
             default:
                 $response = Response::STATUS_METHOD_NOT_ALLOWED;
                 $headers = ['Content-Type' => 'text/plain'];
@@ -98,7 +98,7 @@ class USPSEndpoint extends Endpoint
      * - Contains an error message for invalid requests or the API result for successful requests.
      */
     private function get(
-        ServerRequestInterface|string $request,
+        $request,
         int|string &$response,
         array &$headers,
         string &$body,
@@ -151,14 +151,16 @@ class USPSEndpoint extends Endpoint
     /**
      * Handles the HEAD request by setting the response status and headers, and returning the content.
      */
-    private function head(int|string &$response, array &$headers): string
+    private function head(
+        $request,
+        int|string &$response,
+        array &$headers,
+        string &$body,
+        bool $bypass_token = false
+    ): void
     {
-        $response = Response::STATUS_OK;
-        $headers = ['Content-Type' => 'application/xml; charset=UTF-8'];
-        $headers['Content-Length'] = ($content = $this->__content())
-            ? strlen($content)
-            : 0;
-        return $content;
+        $this->get($request, $response, $headers, $body, $bypass_token);
+        $body = '';
     }
 
     /**
@@ -173,25 +175,6 @@ class USPSEndpoint extends Endpoint
     ): void
     {
         $this->get($request, $response, $headers, $body, $bypass_token);
-    }
-
-    /**
-     * Generates an XML response containing address information.
-     *
-     * @return string The XML string representation of the address data.
-     * @throws RuntimeException If the XML generation fails.
-     */
-    private function __content(): string
-    {
-        return (new SimpleXMLElement('<Response/>'))
-            ->addChild('Address1', $this->address1)
-            ->addChild('Address2', $this->address2)
-            ->addChild('City', $this->city)
-            ->addChild('State', $this->state)
-            ->addChild('Zip5', $this->zip5)
-            ->addChild('Zip4', $this->zip4)
-            ->addChild('Info', SELF::INFO)
-            ->asXML() ?: throw new RuntimeException('Failed to generate XML response.');
     }
 
     /**

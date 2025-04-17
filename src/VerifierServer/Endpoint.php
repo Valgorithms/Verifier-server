@@ -5,11 +5,15 @@ namespace VerifierServer;
 use React\Http\Message\Response;
 use VerifierServer\Endpoints\Interfaces\EndpointInterface;
 use VerifierServer\Endpoints\Traits\RequestParserTrait;
+use VerifierServer\Traits\HttpMethodsTrait;
 
 class Endpoint implements EndpointInterface
 {
     //use RequestTrait, MessageTrait, ServerRequestTrait;
     use RequestParserTrait;
+    use HttpMethodsTrait;
+
+    protected array $allowed_methods = [];
 
     public function handle(
         string $method,
@@ -22,5 +26,10 @@ class Endpoint implements EndpointInterface
         $response = Response::STATUS_OK; // HTTP status code
         $headers = ['Content-Type' => 'application/json']; // Response headers
         $body = json_encode(['message' => 'Hello, World!']); // Response body
+    }
+
+    public function getAllowedMethods(): array
+    {
+        return $this->allowed_methods;
     }
 }

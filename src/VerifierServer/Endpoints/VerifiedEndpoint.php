@@ -74,7 +74,8 @@ class VerifiedEndpoint extends Endpoint
                 $this->get($response, $headers, $body);
                 break;
             case 'HEAD':
-                $this->head($response, $headers);
+                $this->get($response, $headers, $body);
+                $body = '';
                 break;
             case 'POST':
             case 'PUT':
@@ -84,7 +85,6 @@ class VerifiedEndpoint extends Endpoint
             case 'PATCH':
             case 'OPTIONS':
             case 'CONNECT':
-            case 'TRACE':
             default:
                 $response = Response::STATUS_METHOD_NOT_ALLOWED;
                 $headers = ['Content-Type' => 'text/plain'];
@@ -104,27 +104,11 @@ class VerifiedEndpoint extends Endpoint
      */
     private function get(int|string &$response, array &$headers, string &$body): void
     {
-        $body = $this->head($response, $headers);
-    }
-
-    /**
-     * Sets the HTTP response status and content type for the HEAD request.
-     *
-     * @param int|string &$response     The response string to be sent back to the client.
-     * @param array      &$headers      The variable to store the headers of the response.
-     * 
-     * @return string The content to be sent in the response body.
-     * 
-     * This method sets the HTTP status code and headers.
-     */
-    private function head(int|string &$response, array &$headers): string
-    {
         $response = Response::STATUS_OK;
         $headers = ['Content-Type' => 'application/json'];
-        $headers['Content-Length'] = ($content = $this->__content())
-            ? strlen($content)
+        $headers['Content-Length'] = ($body = $this->__content())
+            ? strlen($body)
             : 0;
-        return $content;
     }
 
     /**
@@ -241,7 +225,10 @@ class VerifiedEndpoint extends Endpoint
         ];
         PersistentState::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
-        $body = $this->head($response, $headers);
+        $headers = ['Content-Type' => 'application/json'];
+        $headers['Content-Length'] = ($body = $this->__content())
+            ? strlen($body)
+            : 0;
     }
 
     /**

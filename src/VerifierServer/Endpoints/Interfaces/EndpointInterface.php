@@ -31,4 +31,5 @@ interface EndpointInterface
         array &$headers,
         string &$body
     ): void;
+    public function getAllowedMethods(): array;
 }
