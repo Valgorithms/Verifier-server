@@ -15,9 +15,11 @@ use React\Http\Message\Response;
 use React\Socket\SocketServer;
 use React\Http\Message\ServerRequest;
 use SS14\Endpoints\OAuth2Endpoint as SS14OAuth2Endpoint;
+use Discord\Endpoints\OAuth2Endpoint as DiscordOAuth2Endpoint;
 use VerifierServer\Endpoints\Interfaces\EndpointInterface;
 //use VerifierServer\Endpoints\USPSEndpoint;
 use VerifierServer\Endpoints\VerifiedEndpoint;
+use VerifierServer\Traits\HttpMethodsTrait;
 
 use Exception;
 use Throwable;
@@ -35,6 +37,8 @@ use function pcntl_signal_dispatch;
  * @package VerifierServer
  */
 class Server {
+    use HttpMethodsTrait;
+
     /**
     * The ReactPHP event loop.
      * 
@@ -99,7 +103,7 @@ class Server {
      * 
      * @var array IP sessions.
      */
-    protected array $ip_sessions;
+    protected array $ip_sessions = [];
     
     public function __construct(
         protected string $addr,
@@ -230,6 +234,42 @@ class Server {
         if (isset($this->loop) && $stop_loop) $this->loop->stop();
     }
 
+    protected function route(
+        string $uri,
+        string $method,
+        ServerRequestInterface $request,
+        int|string &$response,
+        array &$headers,
+        string &$body
+    ): void
+    {
+        if ($method == 'TRACE') {
+            $this->trace($request, $response, $headers, $body);
+            return;
+        }
+
+        $allowed_methods = (isset($this->endpoints[$uri]) && ($endpoint = $this->endpoints[$uri]) instanceof EndpointInterface)
+            ? array_merge($endpoint->getAllowedMethods(), HttpMethodsTrait::DEFAULT_METHODS)
+            : HttpMethodsTrait::DEFAULT_METHODS;
+
+        if ($method == 'OPTIONS') {
+            $this->options(
+                $response,
+                $headers,
+                $body,
+                $uri,
+                $allowed_methods
+            );
+            return;
+        }
+
+        //TODO: Check if the method is implemented by the endpoint
+
+        $endpoint
+            ? $endpoint->handle($method, $request, $response, $headers, $body)
+            : $this->logError(new Exception("Endpoint not found: $uri"), false);
+    }
+
     /**
      * Handles the incoming HTTP request and generates the appropriate response.
      *
@@ -272,8 +312,8 @@ class Server {
         $response = Response::STATUS_NOT_FOUND;
         $headers = ['Content-Type' => 'text/plain'];
         $body = "Not Found";
-
-        $this->handleEndpoint($uri, $method, $client, $response, $headers, $body);
+        
+        $this->route($uri, $method, $client, $response, $headers, $body);
 
         return new Response(
             $response,
@@ -334,7 +374,7 @@ class Server {
         $headers = ['Content-Type' => 'text/plain'];
         $body = "Not Found";
         
-        $this->handleEndpoint($uri, $method, $server_request, $response, $headers, $body);
+        $this->route($uri, $method, $server_request, $response, $headers, $body);
 
         if (is_int($response)) {
             $statusTexts = [
@@ -506,19 +546,33 @@ class Server {
         $this->endpoints['/'] = &$this->endpoints['/verified'];
     }
 
-    public function setOAUth2Endpoint(
-        string $SS14_OAUTH2_CLIENT_ID,
-        string $SS14_OAUTH2_CLIENT_SECRET
+    public function setSS14OAuth2Endpoint(
+        string $client_id,
+        string $client_secret
     ): void
     {
-        $this->ip_sessions = $this->ip_sessions ?? [];
         $this->endpoints['/ss14wa'] = new SS14OAuth2Endpoint(
             $this->ip_sessions,
             $this->getResolvedIp(),
             $this->getWebAddress(),
             $this->port,
-            $SS14_OAUTH2_CLIENT_ID,
-            $SS14_OAUTH2_CLIENT_SECRET,
+            $client_id,
+            $client_secret,
+        );
+    }
+
+    public function setDiscordOAuth2Endpoint(
+        string $client_id,
+        string $client_secret
+    ): void
+    {
+        $this->endpoints['/dwa'] = new DiscordOAuth2Endpoint(
+            $this->ip_sessions,
+            $this->getResolvedIp(),
+            $this->getWebAddress(),
+            $this->port,
+            $client_id,
+            $client_secret,
         );
     }
 

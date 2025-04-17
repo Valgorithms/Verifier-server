@@ -13,7 +13,7 @@ class Endpoint implements EndpointInterface
     use RequestParserTrait;
     use HttpMethodsTrait;
 
-    protected array $allowed_methods = [];
+    protected array $allowed_methods = []; // 'OPTIONS' and 'TRACE' are handled by the server unless otherwise specified here
 
     public function handle(
         string $method,
