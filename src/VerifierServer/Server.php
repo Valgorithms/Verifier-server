@@ -485,6 +485,11 @@ class Server {
     {
         return $this->state ?? null;
     }
+    
+    public function getSessions(): array
+    {
+        return $this->ip_sessions;
+    }
 
     public function getResolvedIp(): string
     {
