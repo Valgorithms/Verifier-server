@@ -248,6 +248,7 @@ class Server {
             return;
         }
 
+        $endpoint = null;
         $allowed_methods = (isset($this->endpoints[$uri]) && ($endpoint = $this->endpoints[$uri]) instanceof EndpointInterface)
             ? array_merge($endpoint->getAllowedMethods(), self::DEFAULT_METHODS)
             : self::DEFAULT_METHODS;
