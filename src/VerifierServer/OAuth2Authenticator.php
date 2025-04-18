@@ -80,12 +80,12 @@ class OAuth2Authenticator
             $this->allowed_uri[] = "$scheme://$resolved_ip:$http_port/{$this->endpoint_name}";
         }
         
-        $this->state = isset($this->sessions[$this->requesting_ip], $this->sessions[$this->requesting_ip]['state'])
-            ? $this->sessions[$this->requesting_ip]['state']
-            : $this->sessions[$this->requesting_ip]['state'] = uniqid();
+        $this->state = isset($this->sessions[$this->endpoint_name][$this->requesting_ip], $this->sessions[$this->endpoint_name][$this->requesting_ip]['state'])
+            ? $this->sessions[$this->endpoint_name][$this->requesting_ip]['state']
+            : $this->sessions[$this->endpoint_name][$this->requesting_ip]['state'] = uniqid();
 
-        if (isset($this->sessions[$this->requesting_ip]['access_token'])) {
-            $this->access_token = $this->sessions[$this->requesting_ip]['access_token'];
+        if (isset($this->sessions[$this->endpoint_name][$this->requesting_ip]['access_token'])) {
+            $this->access_token = $this->sessions[$this->endpoint_name][$this->requesting_ip]['access_token'];
             $this->getUser();
         }
     }
@@ -158,7 +158,7 @@ class OAuth2Authenticator
         string &$body
     ): void
     {
-        unset($this->sessions[$this->requesting_ip]);
+        unset($this->sessions[$this->endpoint_name][$this->requesting_ip]);
         $response = Response::STATUS_FOUND;
         $headers = ['Location' => ($this->redirect_home ?? $this->default_redirect)];
         $body = '';
@@ -185,7 +185,7 @@ class OAuth2Authenticator
                 'access_token'  => $this->access_token
             ]
         );
-        unset($this->sessions[$this->requesting_ip]['access_token']);
+        unset($this->sessions[$this->endpoint_name][$this->requesting_ip]['access_token']);
     }
 
     public function getToken(
@@ -232,7 +232,7 @@ class OAuth2Authenticator
         $response = Response::STATUS_FOUND;
         $headers = ['Location' => $this->redirect_home];
         $body = '';
-        return $this->sessions[$this->requesting_ip]['access_token'] = $api_response->access_token;
+        return $this->sessions[$this->endpoint_name][$this->requesting_ip]['access_token'] = $api_response->access_token;
     }
 
     public function getUser(): ?object

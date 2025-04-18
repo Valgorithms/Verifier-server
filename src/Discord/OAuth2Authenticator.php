@@ -72,9 +72,9 @@ class OAuth2Authenticator extends __OAuth2Authenticator
         foreach($connections as $__ => $connection)
         {
             if (isset($connection->type)) {
-                $this->sessions[$this->requesting_ip]["oauth_{$connection->type}_id"] = $connection->id;
-                $this->sessions[$this->requesting_ip]["oauth_{$connection->type}_name"] = $connection->name;
-                if ($connection->type == 'steam') $this->sessions[$this->requesting_ip]['oauth_steam_url'] = "https://steamcommunity.com/profiles/{$connection->id}/";
+                $this->sessions[$this->endpoint_name][$this->requesting_ip]["oauth_{$connection->type}_id"] = $connection->id;
+                $this->sessions[$this->endpoint_name][$this->requesting_ip]["oauth_{$connection->type}_name"] = $connection->name;
+                if ($connection->type == 'steam') $this->sessions[$this->endpoint_name][$this->requesting_ip]['oauth_steam_url'] = "https://steamcommunity.com/profiles/{$connection->id}/";
             }
         }
         return $connections;
