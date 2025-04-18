@@ -73,8 +73,8 @@ class OAuth2Authenticator
         $this->default_redirect = "$scheme://$host:$http_port" . explode('?', $request->getUri()->getPath())[0];
 
         $this->redirect_home = "$scheme://$web_address:$http_port";
+        $this->allowed_uri[] = $this->redirect_home . "/{$this->endpoint_name}"; // must be first in array for redirect_uri check
         $this->allowed_uri[] = $this->redirect_home;
-        $this->allowed_uri[] = $this->redirect_home . "/{$this->endpoint_name}";
         if ($resolved_ip) {
             $this->allowed_uri[] = "$scheme://$resolved_ip:$http_port/";
             $this->allowed_uri[] = "$scheme://$resolved_ip:$http_port/{$this->endpoint_name}";
