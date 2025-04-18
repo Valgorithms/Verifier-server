@@ -118,6 +118,12 @@ class OAuth2Endpoint extends Endpoint
             $OAA->removeToken($response, $headers, $body);
             return;
         }
+        if (isset($params['user']) && $OAA->isAuthed()) {
+            $response = Response::STATUS_OK;
+            $headers = ['Content-Type' => 'application/json'];
+            $body = json_encode($OAA->getUser());
+            return;
+        }
     }
 
     /**
