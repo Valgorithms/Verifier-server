@@ -238,12 +238,12 @@ class OAuth2Authenticator
     public function getUser(): ?object
     {
         if (isset($this->user)) {
-            return $this->user;
+            return $this->sessions[$this->endpoint_name][$this->requesting_ip]['user'] = $this->user;
         }
         if (! isset($this->issuer, $this->userinfo_endpoint, $this->access_token)) {
             return null;
         }
-        return $this->user = $this->apiRequest("{$this->issuer}{$this->userinfo_endpoint}");
+        return $this->sessions[$this->endpoint_name][$this->requesting_ip]['user'] = $this->user = $this->apiRequest("{$this->issuer}{$this->userinfo_endpoint}");
     }
 
     public function isAuthed(): bool
