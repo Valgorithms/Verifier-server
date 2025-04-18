@@ -21,6 +21,20 @@ class OAuth2Authenticator extends __OAuth2Authenticator
 
     protected string $connections_endpoint          = '/users/@me/connections';
 
+    public function __construct(
+        $request,
+        protected array &$sessions,
+        string $resolved_ip,
+        string $web_address,
+        int $http_port,
+        protected string $client_id,
+        protected string $client_secret,
+        protected string $endpoint_name = 'dwa',
+        protected string $scope = 'identify guilds connections'
+    ) {
+        parent::__construct($request, $sessions, $resolved_ip, $web_address, $http_port, $client_id, $client_secret, $endpoint_name, $scope);
+    }
+
     /**
      * Processes a connection object and stores relevant OAuth data in the session.
      * 

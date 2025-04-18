@@ -18,7 +18,7 @@ class OAuth2Endpoint extends Endpoint
     protected array $cache = [];
 
     public function __construct(
-        public array &$sessions,
+        protected array &$sessions,
         protected string $resolved_ip,
         protected string $web_address,
         protected int $http_port,
@@ -98,7 +98,8 @@ class OAuth2Endpoint extends Endpoint
                 $this->web_address,
                 $this->http_port,
                 $this->client_id,
-                $this->client_secret
+                $this->client_secret,
+                $scope = 'identify guilds connections',
             );
         /** @var OAuth2Authenticator $OAA */
 
