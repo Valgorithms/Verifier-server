@@ -2,6 +2,7 @@
 
 namespace VerifierServer;
 
+use Discord\Endpoints\OAuth2Endpoint as DiscordOAuth2Endpoint;
 use Monolog\Level;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
@@ -15,7 +16,6 @@ use React\Http\Message\Response;
 use React\Socket\SocketServer;
 use React\Http\Message\ServerRequest;
 use SS14\Endpoints\OAuth2Endpoint as SS14OAuth2Endpoint;
-use Discord\Endpoints\OAuth2Endpoint as DiscordOAuth2Endpoint;
 use VerifierServer\Endpoints\Interfaces\EndpointInterface;
 //use VerifierServer\Endpoints\USPSEndpoint;
 use VerifierServer\Endpoints\VerifiedEndpoint;

@@ -22,6 +22,7 @@
     },
     "autoload": {
         "psr-4": {
+            "Discord\\": "src/Discord/",
             "SS14\\": "src/SS14/",
             "VerifierServer\\": "src/VerifierServer/"
         }
