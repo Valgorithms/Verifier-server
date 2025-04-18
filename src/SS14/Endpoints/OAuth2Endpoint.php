@@ -103,7 +103,9 @@ class OAuth2Endpoint extends Endpoint
         /** @var OAuth2Authenticator $OAA */
 
         if (isset($params['code'], $params['state'])) {
-            /*$token =*/ $OAA->getToken($response, $headers, $body, $params['code'], $params['state']);
+            if ($OAA->getToken($response, $headers, $body, $params['code'], $params['state'])) {
+                $OAA->getUser();
+            }
             return;
         }
         if (isset($params['login'])) {
@@ -116,6 +118,12 @@ class OAuth2Endpoint extends Endpoint
         }
         if (isset($params['remove']) && $OAA->isAuthed()) {
             $OAA->removeToken($response, $headers, $body);
+            return;
+        }
+        if (isset($params['user']) && $user = $OAA->getUser()) {
+            $response = Response::STATUS_OK;
+            $headers = ['Content-Type' => 'application/json'];
+            $body = json_encode($user);
             return;
         }
     }
