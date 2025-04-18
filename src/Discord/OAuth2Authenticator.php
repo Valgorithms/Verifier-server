@@ -32,7 +32,17 @@ class OAuth2Authenticator extends __OAuth2Authenticator
         protected string $endpoint_name = 'dwa',
         protected string $scope = 'identify guilds connections'
     ) {
-        parent::__construct($request, $sessions, $resolved_ip, $web_address, $http_port, $client_id, $client_secret, $endpoint_name, $scope);
+        parent::__construct(
+            $request,
+            $sessions,
+            $resolved_ip,
+            $web_address,
+            $http_port,
+            $client_id,
+            $client_secret,
+            $endpoint_name,
+            $scope
+        );
     }
 
     /**

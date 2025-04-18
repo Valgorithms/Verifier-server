@@ -98,8 +98,7 @@ class OAuth2Endpoint extends Endpoint
                 $this->web_address,
                 $this->http_port,
                 $this->client_id,
-                $this->client_secret,
-                $scope = 'identify guilds connections',
+                $this->client_secret
             );
         /** @var OAuth2Authenticator $OAA */
 

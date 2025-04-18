@@ -41,11 +41,11 @@ class OAuth2Authenticator
      * Initializes the OAuth2 authentication process by setting up session data, 
      * request parameters, allowed URIs, and other necessary configurations.
      *
+     * @param ServerRequestInterface $request
      * @param array &$sessions
      * @param string $resolved_ip
      * @param string $web_address
      * @param int $http_port
-     * @param ServerRequestInterface $request
      * @param string $client_id
      * @param string $client_secret
      * @param string $endpoint_name
@@ -61,8 +61,8 @@ class OAuth2Authenticator
         int $http_port,
         protected string $client_id,
         protected string $client_secret,
-        protected string $endpoint_name = 'ss14wa',
-        protected string $scope = 'openid profile email'
+        protected string $endpoint_name,
+        protected string $scope
     ) {
         if (! $request instanceof ServerRequestInterface) {
             throw new \RuntimeException('String requests are not supported.');
@@ -134,8 +134,9 @@ class OAuth2Authenticator
 
         if (!in_array($redirect_uri = $redirect_uri ?? $this->default_redirect, $this->allowed_uri)) {
             $response = Response::STATUS_FOUND;
-            $headers = ['Location' => $this->allowed_uri[0] . '?login'];
+            $headers = ['Location' => "{$this->endpoint_name}/{$this->allowed_uri[0]}?login"];
             $body = '';
+            var_dump($headers);
             return;
         }
 
