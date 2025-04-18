@@ -73,6 +73,12 @@ class Server {
      * @var PersistentState Persistent state.
      */
     protected PersistentState $state;
+    /**
+     * The persistent state.
+     * 
+     * @var SS14PersistentState Persistent state.
+     */
+    protected SS14PersistentState $ss14state;
 
     /**
      * Whether the server has been initialized.
@@ -117,6 +123,11 @@ class Server {
             $this->addr = $array[0];
             $this->port = (int) $array[1];
         }
+        $this->afterConstruct();
+    }
+    protected function afterConstruct(): void
+    {
+        //$this->endpoints['/usps'] = new USPSEndpoint($_ENV['USPS_USERID'] ?? getenv('USPS_USERID'));
     }
 
     /**
@@ -486,6 +497,10 @@ class Server {
     {
         return $this->state ?? null;
     }
+    public function getSS14State(): ?SS14PersistentState
+    {
+        return $this->SS14state ?? null;
+    }
     
     public function getSessions(): array
     {
@@ -536,7 +551,13 @@ class Server {
         if (is_array($state)) $state = new PersistentState(...$state);
         $this->state = $state;
         $this->__setVerifiedEndpoint($state);
-        //$this->endpoints['/usps'] = new USPSEndpoint($_ENV['USPS_USERID'] ?? getenv('USPS_USERID'));
+    }
+    public function setSS14State(array|SS14PersistentState $ss14state): void
+    {
+        if (isset($this->ss14state)) return;
+        if (is_array($ss14state)) $ss14state = new SS14PersistentState(...$ss14state);
+        $this->ss14state = $ss14state;
+        $this->__setSS14VerifiedEndpoint($ss14state);
     }
 
     /**
@@ -550,6 +571,10 @@ class Server {
     {
         $this->endpoints['/verified'] = new VerifiedEndpoint($state);
         $this->endpoints['/'] = &$this->endpoints['/verified'];
+    }
+    private function __setSS14VerifiedEndpoint(PersistentState &$state): void
+    {
+        //$this->endpoints['/ss14verified'] = new VerifiedEndpoint($state);
     }
 
     public function setSS14OAuth2Endpoint(
