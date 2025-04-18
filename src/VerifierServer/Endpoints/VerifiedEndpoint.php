@@ -102,7 +102,7 @@ class VerifiedEndpoint extends Endpoint
      *
      * It appends the JSON-encoded verification list to the body of the response.
      */
-    private function get(int|string &$response, array &$headers, string &$body): void
+    protected function get(int|string &$response, array &$headers, string &$body): void
     {
         $response = Response::STATUS_OK;
         $headers = ['Content-Type' => 'application/json'];
@@ -116,7 +116,7 @@ class VerifiedEndpoint extends Endpoint
      *
      * @return string|false Returns the JSON-encoded string on success, or false on failure.
      */
-    private function __content(): string|false
+    protected function __content(): string|false
     {
         return json_encode($this->state->getVerifyList());
     }
@@ -137,7 +137,7 @@ class VerifiedEndpoint extends Endpoint
      * 5. Retrieves the verification list from the state.
      * 6. Based on the method type, either deletes an entry from the list or handles the default case.
      */
-    private function post(ServerRequestInterface|string $request, int|string &$response, array &$headers, string &$body, bool $bypass_token = false): void
+    protected function post(ServerRequestInterface|string $request, int|string &$response, array &$headers, string &$body, bool $bypass_token = false): void
     {
         $formData = $request instanceof ServerRequestInterface
             ? $request->getHeaders()
@@ -207,7 +207,7 @@ class VerifiedEndpoint extends Endpoint
      * @param array  &$headers      The variable to store the headers of the response.
      * @param string &$body         The variable to store the body of the response.
      */
-    private function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$headers, string &$body): void
+    protected function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$headers, string &$body): void
     {
         $existingCkeyIndex = array_search($ckey, array_column($list, 'ss13'));
         $existingDiscordIndex = array_search($discord, array_column($list, 'discord'));
@@ -223,7 +223,7 @@ class VerifiedEndpoint extends Endpoint
             'discord' => $discord,
             'create_time' => date('Y-m-d H:i:s')
         ];
-        PersistentState::writeJson($this->state->getJsonPath(), $list);
+        $this->state::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
         $headers = ['Content-Type' => 'application/json'];
         $headers['Content-Length'] = ($body = $this->__content())
@@ -240,7 +240,7 @@ class VerifiedEndpoint extends Endpoint
      * @param array            &$headers      The variable to store the headers of the response.
      * @param string           &$body         The variable to store the body of the response.
      */
-    private function delete(int|string|false $existingIndex, array &$list, int|string &$response, array &$headers, string &$body): void
+    protected function delete(int|string|false $existingIndex, array &$list, int|string &$response, array &$headers, string &$body): void
     {
         if ($existingIndex === false) {
             $response = Response::STATUS_NOT_FOUND;
@@ -249,7 +249,7 @@ class VerifiedEndpoint extends Endpoint
             return;
         }
         $splice = array_splice($list, $existingIndex, 1);
-        PersistentState::writeJson($this->state->getJsonPath(), $list);
+        $this->state::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
         $response = Response::STATUS_OK;
         $headers = ['Content-Type' => 'application/json'];
