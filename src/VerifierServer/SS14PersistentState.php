@@ -9,7 +9,7 @@ use PDO;
 use PDOException;
 
 /**
- * Class PersistentState
+ * Class SS14PersistentState
  *
  * This class provides a persistent state management system for verification data. It supports two storage types:
  * - Filesystem: Stores the verification data in a JSON file.
