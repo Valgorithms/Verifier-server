@@ -75,7 +75,7 @@ class OAuth2Endpoint extends Endpoint
         string &$body
     ): void
     {
-        if (! $request instanceof ServerRequestInterface) {
+        if (!$request instanceof ServerRequestInterface) {
             $response = Response::STATUS_METHOD_NOT_ALLOWED;
             $headers = ['Content-Type' => 'text/plain'];
             $body = 'Method Not Allowed';

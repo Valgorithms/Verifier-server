@@ -249,8 +249,8 @@ class Server {
         }
 
         $allowed_methods = (isset($this->endpoints[$uri]) && ($endpoint = $this->endpoints[$uri]) instanceof EndpointInterface)
-            ? array_merge($endpoint->getAllowedMethods(), HttpMethodsTrait::DEFAULT_METHODS)
-            : HttpMethodsTrait::DEFAULT_METHODS;
+            ? array_merge($endpoint->getAllowedMethods(), self::DEFAULT_METHODS)
+            : self::DEFAULT_METHODS;
 
         if ($method == 'OPTIONS') {
             $this->options(
@@ -303,17 +303,17 @@ class Server {
      *
      * @return ResponseInterface The generated HTTP response.
      */
-    private function handleReact(ServerRequestInterface $client): ResponseInterface
+    private function handleReact(ServerRequestInterface $request): ResponseInterface
     {
-        $method = $client->getMethod();
-        $uri = $client->getUri()->getPath();
+        $method = $request->getMethod();
+        $uri = $request->getUri()->getPath();
 
         // Defaults
         $response = Response::STATUS_NOT_FOUND;
         $headers = ['Content-Type' => 'text/plain'];
         $body = "Not Found";
         
-        $this->route($uri, $method, $client, $response, $headers, $body);
+        $this->route($uri, $method, $request, $response, $headers, $body);
 
         return new Response(
             $response,
