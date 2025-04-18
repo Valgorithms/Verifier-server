@@ -197,6 +197,12 @@ class OAuth2Authenticator
         string $redirect_uri = ''
     ): ?string
     {
+        if (!empty($this->access_token)) {
+            $response = Response::STATUS_FOUND;
+            $headers = ['Location' => $this->redirect_home];
+            $body = '';
+            return $this->access_token;
+        }
         if (! isset($this->issuer, $this->token_endpoint)) {
             $response = Response::STATUS_BAD_REQUEST;
             $headers = ['Content-Type' => 'text/plain'];
@@ -232,12 +238,12 @@ class OAuth2Authenticator
         $response = Response::STATUS_FOUND;
         $headers = ['Location' => $this->redirect_home];
         $body = '';
-        return $this->sessions[$this->endpoint_name][$this->requesting_ip]['access_token'] = $api_response->access_token;
+        return $this->sessions[$this->endpoint_name][$this->requesting_ip]['access_token'] = $this->access_token = $api_response->access_token;
     }
 
     public function getUser(): ?object
     {
-        if (isset($this->user)) {
+        if (!empty($this->user)) {
             return $this->sessions[$this->endpoint_name][$this->requesting_ip]['user'] = $this->user;
         }
         if (! isset($this->issuer, $this->userinfo_endpoint, $this->access_token)) {
