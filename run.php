@@ -22,7 +22,7 @@ $server->setState([
 $server->setSS14State([
     $envConfig['TOKEN'],
     $envConfig['STORAGE_TYPE'] ?? 'filesystem',
-    $envConfig['JSON_PATH'] ?? 'json/ss14verify.json',
+    $envConfig['SS14_JSON_PATH'] ?? 'json/ss14verify.json',
 ]);
 $server->setSS14OAuth2Endpoint(
     $_ENV['SS14_OAUTH2_CLIENT_ID'] ?? getenv('SS14_OAUTH2_CLIENT_ID'),
