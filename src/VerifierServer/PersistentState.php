@@ -116,13 +116,11 @@ class PersistentState
         }
         $stmt = $this->pdo->query("SELECT * FROM {$this->table_name}");
         if ($stmt === false) {
-            $errorInfo = $this->pdo->errorInfo();
-            throw new PDOException("Failed to execute query: " . implode(", ", $errorInfo));
+            throw new PDOException("Failed to execute query: " . implode(", ", $this->pdo->errorInfo()));
         }
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
         if ($result === false) {
-            $errorInfo = $this->pdo->errorInfo();
-            throw new PDOException("Failed to fetch data: " . implode(", ", $errorInfo));
+            throw new PDOException("Failed to fetch data: " . implode(", ", $this->pdo->errorInfo()));
         }
         return $this->verifyList = $result;
     }
@@ -248,5 +246,14 @@ class PersistentState
         if ($this->storageType !== 'filesystem') {
             $this->initializeDatabase();
         }
+    }
+
+    public function __debugInfo()
+    {
+        return [
+            'storageType' => $this->storageType,
+            'json_path' => $this->json_path,
+            'verifyList' => $this->verifyList ?? [],
+        ];
     }
 }

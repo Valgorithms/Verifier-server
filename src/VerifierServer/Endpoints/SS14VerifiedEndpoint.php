@@ -4,11 +4,10 @@ namespace VerifierServer\Endpoints;
 
 use React\Http\Message\Response;
 use Psr\Http\Message\ServerRequestInterface;
-use VerifierServer\Endpoint;
-use VerifierServer\PersistentState;
+use VerifierServer\SS14PersistentState;
 
 /**
- * Class VerifiedEndpoint
+ * Class SS14VerifiedEndpoint
  *
  * This class is responsible for handling the verification process for the VerifierServer.
  * It implements the EndpointInterface and provides methods to handle HTTP GET, POST, and DELETE requests.
@@ -43,83 +42,13 @@ use VerifierServer\PersistentState;
  * - Sets the Content-Type header based on the response type (e.g., application/json, text/plain).
  * - Encodes the response body as JSON for successful requests or as plain text for error responses.
  *
- * @property PersistentState $state
+ * @property SS14PersistentState $state
  * @package VerifierServer\Endpoints
  */
-class VerifiedEndpoint extends Endpoint
+class SS14VerifiedEndpoint extends VerifiedEndpoint
 {
     public function __construct(protected &$state)
     {}
-
-    /**
-     * Handles the incoming HTTP request and generates the appropriate response.
-     *
-     * @param string                        $method        The HTTP method of the request (e.g., 'GET', 'POST').
-     * @param ServerRequestInterface|string $request       The request payload, typically used for 'POST' requests.
-     * @param int|string                    &$response     The variable to store the generated response.
-     * @param array                         &$headers      The variable to store the headers of the response.
-     * @param string                        &$body         The variable to store the body of the response.
-     * @param bool                          $bypass_token  Whether to bypass the token check. Default is false.
-     */
-    public function handle(
-        string $method,
-        $request,
-        int|string &$response, 
-        array &$headers,
-        string &$body,
-        bool $bypass_token = false
-    ): void
-    {
-        switch ($method) {
-            case 'GET':
-                $this->get($response, $headers, $body);
-                break;
-            case 'HEAD':
-                $this->get($response, $headers, $body);
-                $body = '';
-                break;
-            case 'POST':
-            case 'PUT':
-            case 'DELETE':
-                $this->post($request, $response, $headers, $body, $bypass_token);
-                break;
-            case 'PATCH':
-            case 'OPTIONS':
-            case 'CONNECT':
-            default:
-                $response = Response::STATUS_METHOD_NOT_ALLOWED;
-                $headers = ['Content-Type' => 'text/plain'];
-                $body = 'Method Not Allowed';
-                break;
-        }
-    }
-
-    /**
-     * Handles the GET request and prepares the response.
-     *
-     * @param int|string &$response     The response string to be sent back to the client.
-     * @param array      &$headers      The variable to store the headers of the response.
-     * @param string     &$body         The variable to store the body of the response.
-     *
-     * It appends the JSON-encoded verification list to the body of the response.
-     */
-    protected function get(int|string &$response, array &$headers, string &$body): void
-    {
-        $response = Response::STATUS_OK;
-        $headers['Content-Type'] = 'application/json';
-        $body = $this->__content();
-        $headers['Content-Length'] = $body ? strlen($body) : 0;
-    }
-
-    /**
-     * Encodes the verification list retrieved from the state into a JSON string.
-     *
-     * @return string|false Returns the JSON-encoded string on success, or false on failure.
-     */
-    protected function __content(): string
-    {
-        return json_encode($this->state->getVerifyList()) ?: '';
-    }
 
     /**
      * Handles POST requests by parsing the request data and performing actions based on the method type.
@@ -132,7 +61,7 @@ class VerifiedEndpoint extends Endpoint
      * The function performs the following steps:
      * 1. Extracts the raw data from the request.
      * 2. Parses the raw data into an associative array.
-     * 3. Retrieves the method type, ckey, discord, and token from the parsed data.
+     * 3. Retrieves the method type, ss14, discord, and token from the parsed data.
      * 4. Checks if the provided token matches the expected token. If not, sets the response to 401 Unauthorized.
      * 5. Retrieves the verification list from the state.
      * 6. Based on the method type, either deletes an entry from the list or handles the default case.
@@ -148,11 +77,11 @@ class VerifiedEndpoint extends Endpoint
         $methodType = isset($formData['method']) 
             ? strtolower(trim(is_array($formData['method']) ? $formData['method'][0] : $formData['method']))
             : null;
-        $ckey = isset($formData['ckey'])
-            ? trim(is_array($formData['ckey']) ? $formData['ckey'][0] : $formData['ckey'])
-            : '';
         $discord = isset($formData['discord'])
             ? trim(is_array($formData['discord']) ? $formData['discord'][0] : $formData['discord'])
+            : '';
+        $ss14 = isset($formData['ss14'])
+            ? trim(is_array($formData['ss14']) ? $formData['ss14'][0] : $formData['ss14'])
             : '';
         $token = isset($formData['token'])
             ? trim(is_array($formData['token']) ? $formData['token'][0] : $formData['token'])
@@ -169,7 +98,7 @@ class VerifiedEndpoint extends Endpoint
 
         switch ($methodType) {
             case 'delete':
-                $existingIndex = array_search($ckey, array_column($list, 'ss13'));
+                $existingIndex = array_search($ss14, array_column($list, 'ss14'));
                 if ($existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
                 $this->delete(
                     $existingIndex,
@@ -182,7 +111,7 @@ class VerifiedEndpoint extends Endpoint
             default:
                 $this->__post(
                     $list,
-                    $ckey,
+                    $ss14,
                     $discord,
                     $response,
                     $headers,
@@ -195,23 +124,23 @@ class VerifiedEndpoint extends Endpoint
     /**
      * Handles the default verification process.
      *
-     * This method checks if the provided `ckey` or `discord` already exists in the list.
+     * This method checks if the provided `ss14` or `discord` already exists in the list.
      * If either exists, it sets the response to a 403 Forbidden status.
      * If neither exists, it adds the new entry to the list, writes the updated list to a JSON file,
      * updates the state, and sets the response to a 200 OK status.
      *
      * @param array  $list          The list of existing entries.
-     * @param string $ckey          The ckey to be verified.
+     * @param string $ss14          The ss14 to be verified.
      * @param string $discord       The discord identifier to be verified.
      * @param string &$response     The response message to be set based on the verification result.
      * @param array  &$headers      The variable to store the headers of the response.
      * @param string &$body         The variable to store the body of the response.
      */
-    protected function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$headers, string &$body): void
+    protected function __post(array &$list, string $ss14, string $discord, int|string &$response, array &$headers, string &$body): void
     {
-        $existingCkeyIndex = array_search($ckey, array_column($list, 'ss13'));
         $existingDiscordIndex = array_search($discord, array_column($list, 'discord'));
-        if ($existingCkeyIndex !== false || $existingDiscordIndex !== false) {
+        $existingSS14Index = array_search($ss14, array_column($list, 'ss14'));
+        if ($existingDiscordIndex !== false || $existingSS14Index !== false) {
             $response = Response::STATUS_FORBIDDEN;
             $headers = ['Content-Type' => 'text/plain'];
             $body = 'Forbidden';
@@ -219,8 +148,8 @@ class VerifiedEndpoint extends Endpoint
         }
 
         $list[] = [
-            'ss13' => $ckey,
             'discord' => $discord,
+            'ss14' => $ss14,
             'create_time' => date('Y-m-d H:i:s')
         ];
         $this->state::writeJson($this->state->getJsonPath(), $list);
@@ -228,33 +157,6 @@ class VerifiedEndpoint extends Endpoint
         $headers = ['Content-Type' => 'application/json'];
         $headers['Content-Length'] = ($body = $this->__content())
             ? strlen($body)
-            : 0;
-    }
-
-    /**
-     * Handles the deletion of an item from the list.
-     *
-     * @param int|string|false $existingIndex The index of the item to delete, or false if the item does not exist.
-     * @param array            &$list         The list from which the item will be deleted.
-     * @param string           &$response     The HTTP response message to be returned.
-     * @param array            &$headers      The variable to store the headers of the response.
-     * @param string           &$body         The variable to store the body of the response.
-     */
-    protected function delete(int|string|false $existingIndex, array &$list, int|string &$response, array &$headers, string &$body): void
-    {
-        if ($existingIndex === false) {
-            $response = Response::STATUS_NOT_FOUND;
-            $headers = ['Content-Type' => 'text/plain'];
-            $body = 'Not Found';
-            return;
-        }
-        $splice = array_splice($list, $existingIndex, 1);
-        $this->state::writeJson($this->state->getJsonPath(), $list);
-        $this->state->setVerifyList($list);
-        $response = Response::STATUS_OK;
-        $headers = ['Content-Type' => 'application/json'];
-        $headers['Content-Length'] = ($content = json_encode($splice))
-            ? strlen($body = $content)
             : 0;
     }
 }

@@ -19,6 +19,7 @@ use SS14\Endpoints\OAuth2Endpoint as SS14OAuth2Endpoint;
 use VerifierServer\Endpoints\Interfaces\EndpointInterface;
 //use VerifierServer\Endpoints\USPSEndpoint;
 use VerifierServer\Endpoints\VerifiedEndpoint;
+use VerifierServer\Endpoints\SS14VerifiedEndpoint;
 use VerifierServer\Traits\HttpMethodsTrait;
 
 use Exception;
@@ -346,7 +347,7 @@ class Server {
     private function handleResource($client): null
     {
         $request = fread($client, 1024);
-        var_dump($request);
+        //var_dump($request);
         if ($request === false) {
             throw new Exception("Failed to read from client");
         }
@@ -574,7 +575,7 @@ class Server {
     }
     private function __setSS14VerifiedEndpoint(PersistentState &$state): void
     {
-        //$this->endpoints['/ss14verified'] = new VerifiedEndpoint($state);
+        $this->endpoints['/ss14verified'] = new SS14VerifiedEndpoint($state);
     }
 
     public function setSS14OAuth2Endpoint(

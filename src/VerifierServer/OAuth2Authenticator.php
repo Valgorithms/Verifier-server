@@ -136,7 +136,6 @@ class OAuth2Authenticator
             $response = Response::STATUS_FOUND;
             $headers = ['Location' => "{$this->endpoint_name}/{$this->allowed_uri[0]}?login"];
             $body = '';
-            var_dump($headers);
             return;
         }
 
