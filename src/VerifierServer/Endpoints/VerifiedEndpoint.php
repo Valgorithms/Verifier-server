@@ -169,10 +169,8 @@ class VerifiedEndpoint extends Endpoint
 
         switch ($methodType) {
             case 'delete':
-                $existingIndex = array_search($ckey, array_column($list, 'ss13'));
-                if ($existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
                 $this->delete(
-                    $existingIndex,
+                    $this->getIndex($ckey, $discord),
                     $list,
                     $response,
                     $headers,
@@ -218,13 +216,8 @@ class VerifiedEndpoint extends Endpoint
             return;
         }
 
-        $list[] = [
-            'ss13' => $ckey,
-            'discord' => $discord,
-            'create_time' => date('Y-m-d H:i:s')
-        ];
-        $this->state::writeJson($this->state->getJsonPath(), $list);
-        $this->state->setVerifyList($list);
+        $this->add($ckey, $discord);
+
         $headers = ['Content-Type' => 'application/json'];
         $headers['Content-Length'] = ($body = $this->__content())
             ? strlen($body)
@@ -248,13 +241,49 @@ class VerifiedEndpoint extends Endpoint
             $body = 'Not Found';
             return;
         }
-        $splice = array_splice($list, $existingIndex, 1);
-        $this->state::writeJson($this->state->getJsonPath(), $list);
-        $this->state->setVerifyList($list);
+
+        $splice = $this->removeIndex($existingIndex);
+
         $response = Response::STATUS_OK;
         $headers = ['Content-Type' => 'application/json'];
         $headers['Content-Length'] = ($content = json_encode($splice))
             ? strlen($body = $content)
             : 0;
+    }
+
+    public function add(string $ckey, string $discord): void
+    {
+        $list = &$this->state->getVerifyList();
+        $list[] = [
+            'ss13' => $ckey,
+            'discord' => $discord,
+            'create_time' => date('Y-m-d H:i:s')
+        ];
+        $this->state::writeJson($this->state->getJsonPath(), $list);
+        $this->state->setVerifyList($list);
+    }
+
+    public function remove(string $ckey, string $discord): ?array
+    {
+        $existingIndex = $this->getIndex($ckey, $discord);
+        if ($existingIndex === false) return null;
+        return $this->removeIndex($existingIndex);
+    }
+
+    public function getIndex(string $ckey, string $discord): int|string|false
+    {
+        $list = &$this->state->getVerifyList();
+        $existingIndex = array_search($ckey, array_column($list, 'ss13'));
+        if ($existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
+        return $existingIndex;
+    }
+
+    public function removeIndex(int|string $existingIndex): array
+    {
+        $list = &$this->state->getVerifyList();
+        $splice = array_splice($list, (int)$existingIndex, 1);
+        $this->state::writeJson($this->state->getJsonPath(), $list);
+        $this->state->setVerifyList($list);
+        return $splice;
     }
 }

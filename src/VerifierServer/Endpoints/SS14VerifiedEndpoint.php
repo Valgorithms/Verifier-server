@@ -98,10 +98,8 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
 
         switch ($methodType) {
             case 'delete':
-                $existingIndex = array_search($ss14, array_column($list, 'ss14'));
-                if ($existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
                 $this->delete(
-                    $existingIndex,
+                    $this->getIndex($discord, $ss14),
                     $list,
                     $response,
                     $headers,
@@ -147,6 +145,17 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
             return;
         }
 
+        $this->add($discord, $ss14);
+        
+        $headers = ['Content-Type' => 'application/json'];
+        $headers['Content-Length'] = ($body = $this->__content())
+            ? strlen($body)
+            : 0;
+    }
+
+    public function add(string $discord, string $ss14): void
+    {
+        $list = &$this->state->getVerifyList();
         $list[] = [
             'discord' => $discord,
             'ss14' => $ss14,
@@ -154,9 +163,20 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
         ];
         $this->state::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
-        $headers = ['Content-Type' => 'application/json'];
-        $headers['Content-Length'] = ($body = $this->__content())
-            ? strlen($body)
-            : 0;
+    }
+
+    public function remove(string $discord, string $ss14): ?array
+    {
+        $existingIndex = $this->getIndex($discord, $ss14);
+        if ($existingIndex === false) return null;
+        return $this->removeIndex($existingIndex);
+    }
+
+    public function getIndex(string $discord, string $ss14): int|string|false
+    {
+        $list = &$this->state->getVerifyList();
+        $existingIndex = array_search($discord, array_column($list, 'discord'));
+        if ($existingIndex === false) $existingIndex = array_search($ss14, array_column($list, 'ss14'));
+        return $existingIndex;
     }
 }
