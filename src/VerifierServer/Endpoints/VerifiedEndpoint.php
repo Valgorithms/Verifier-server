@@ -286,4 +286,9 @@ class VerifiedEndpoint extends Endpoint
         $this->state->setVerifyList($list);
         return $splice;
     }
+
+    public function getState()
+    {
+        return $this->state;
+    }
 }
