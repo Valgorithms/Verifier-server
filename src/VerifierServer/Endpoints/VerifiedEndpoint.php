@@ -253,7 +253,7 @@ class VerifiedEndpoint extends Endpoint
 
     public function add(string $discord, string $ckey): void
     {
-        $list = &$this->state->getVerifyList();
+        $list = $this->state->getVerifyList();
         $list[] = [
             'discord' => $discord,
             'ss13' => $ckey,
@@ -272,7 +272,7 @@ class VerifiedEndpoint extends Endpoint
 
     public function getIndex(string $discord, string $ckey = ''): int|string|false
     {
-        $list = &$this->state->getVerifyList();
+        $list = $this->state->getVerifyList();
         $existingIndex = array_search($ckey, array_column($list, 'ss13'));
         if ($ckey && $existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
         return $existingIndex;
@@ -280,7 +280,7 @@ class VerifiedEndpoint extends Endpoint
 
     public function removeIndex(int|string $existingIndex): array
     {
-        $list = &$this->state->getVerifyList();
+        $list = $this->state->getVerifyList();
         $splice = array_splice($list, (int)$existingIndex, 1);
         $this->state::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);

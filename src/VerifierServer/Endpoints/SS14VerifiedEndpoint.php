@@ -155,7 +155,7 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
 
     public function add(string $discord, string $ss14): void
     {
-        $list = &$this->state->getVerifyList();
+        $list = $this->state->getVerifyList();
         $list[] = [
             'discord' => $discord,
             'ss14' => $ss14,
@@ -174,7 +174,7 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
 
     public function getIndex(string $discord, string $ss14 = ''): int|string|false
     {
-        $list = &$this->state->getVerifyList();
+        $list = $this->state->getVerifyList();
         $existingIndex = array_search($discord, array_column($list, 'discord'));
         if ($ss14 && $existingIndex === false) $existingIndex = array_search($ss14, array_column($list, 'ss14'));
         return $existingIndex;
