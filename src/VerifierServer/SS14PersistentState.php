@@ -85,7 +85,7 @@ class SS14PersistentState extends PersistentState
      *
      * @throws PDOException If there is an error executing the query or fetching the data from the database.
      */
-    public function getVerifyList(bool $getLocalCache = false): array
+    public function &getVerifyList(bool $getLocalCache = false): array
     {
         if ($this->storageType === 'filesystem' || $getLocalCache) {
             return isset($this->verifyList)
