@@ -170,7 +170,7 @@ class VerifiedEndpoint extends Endpoint
         switch ($methodType) {
             case 'delete':
                 $this->delete(
-                    $this->getIndex($ckey, $discord),
+                    $this->getIndex($discord, $ckey),
                     $list,
                     $response,
                     $headers,
@@ -207,16 +207,16 @@ class VerifiedEndpoint extends Endpoint
      */
     protected function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$headers, string &$body): void
     {
-        $existingCkeyIndex = array_search($ckey, array_column($list, 'ss13'));
         $existingDiscordIndex = array_search($discord, array_column($list, 'discord'));
-        if ($existingCkeyIndex !== false || $existingDiscordIndex !== false) {
+        $existingCkeyIndex = array_search($ckey, array_column($list, 'ss13'));
+        if ($existingDiscordIndex !== false || $existingCkeyIndex !== false) {
             $response = Response::STATUS_FORBIDDEN;
             $headers = ['Content-Type' => 'text/plain'];
             $body = 'Forbidden';
             return;
         }
 
-        $this->add($ckey, $discord);
+        $this->add($discord, $ckey);
 
         $headers = ['Content-Type' => 'application/json'];
         $headers['Content-Length'] = ($body = $this->__content())
@@ -251,30 +251,30 @@ class VerifiedEndpoint extends Endpoint
             : 0;
     }
 
-    public function add(string $ckey, string $discord): void
+    public function add(string $discord, string $ckey): void
     {
         $list = &$this->state->getVerifyList();
         $list[] = [
-            'ss13' => $ckey,
             'discord' => $discord,
+            'ss13' => $ckey,
             'create_time' => date('Y-m-d H:i:s')
         ];
         $this->state::writeJson($this->state->getJsonPath(), $list);
         $this->state->setVerifyList($list);
     }
 
-    public function remove(string $ckey, string $discord): ?array
+    public function remove(string $discord, string $ckey = ''): ?array
     {
-        $existingIndex = $this->getIndex($ckey, $discord);
+        $existingIndex = $this->getIndex($discord, $ckey);
         if ($existingIndex === false) return null;
         return $this->removeIndex($existingIndex);
     }
 
-    public function getIndex(string $ckey, string $discord): int|string|false
+    public function getIndex(string $discord, string $ckey = ''): int|string|false
     {
         $list = &$this->state->getVerifyList();
         $existingIndex = array_search($ckey, array_column($list, 'ss13'));
-        if ($existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
+        if ($ckey && $existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
         return $existingIndex;
     }
 

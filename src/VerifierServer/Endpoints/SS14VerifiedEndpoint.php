@@ -165,18 +165,18 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
         $this->state->setVerifyList($list);
     }
 
-    public function remove(string $discord, string $ss14): ?array
+    public function remove(string $discord, string $ss14 = ''): ?array
     {
         $existingIndex = $this->getIndex($discord, $ss14);
         if ($existingIndex === false) return null;
         return $this->removeIndex($existingIndex);
     }
 
-    public function getIndex(string $discord, string $ss14): int|string|false
+    public function getIndex(string $discord, string $ss14 = ''): int|string|false
     {
         $list = &$this->state->getVerifyList();
         $existingIndex = array_search($discord, array_column($list, 'discord'));
-        if ($existingIndex === false) $existingIndex = array_search($ss14, array_column($list, 'ss14'));
+        if ($ss14 && $existingIndex === false) $existingIndex = array_search($ss14, array_column($list, 'ss14'));
         return $existingIndex;
     }
 }
