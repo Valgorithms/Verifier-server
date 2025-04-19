@@ -88,9 +88,11 @@ class SS14PersistentState extends PersistentState
     public function &getVerifyList(bool $getLocalCache = false): array
     {
         if ($this->storageType === 'filesystem' || $getLocalCache) {
-            return isset($this->verifyList)
-                ? $this->verifyList
-                : $this->verifyList = self::loadJsonFile($this->getJsonPath());
+            if (isset($this->verifyList)) return $this->verifyList;
+            else {
+                $this->verifyList = self::loadJsonFile($this->getJsonPath());
+                return $this->verifyList;
+            }
         }
         $stmt = $this->pdo->query("SELECT * FROM {$this->table_name}");
         if ($stmt === false) {
