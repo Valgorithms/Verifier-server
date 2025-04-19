@@ -18,8 +18,8 @@ use React\Http\Message\ServerRequest;
 use SS14\Endpoints\OAuth2Endpoint as SS14OAuth2Endpoint;
 use VerifierServer\Endpoints\Interfaces\EndpointInterface;
 //use VerifierServer\Endpoints\USPSEndpoint;
-use VerifierServer\Endpoints\VerifiedEndpoint;
 use VerifierServer\Endpoints\SS14VerifiedEndpoint;
+use VerifierServer\Endpoints\VerifiedEndpoint;
 use VerifierServer\Traits\HttpMethodsTrait;
 
 use Exception;
@@ -307,6 +307,13 @@ class Server {
         if (isset($this->endpoints[$uri]) && $this->endpoints[$uri] instanceof EndpointInterface) {
             $this->endpoints[$uri]->handle($method, $request, $response, $headers, $body, $bypass_token);
         }
+    }
+
+    public function getEndpoint(string $uri): ?EndpointInterface
+    {
+        return (isset($this->endpoints[$uri]) && $this->endpoints[$uri] instanceof EndpointInterface)
+            ? $this->endpoints[$uri]
+            : null;
     }
 
     /**
