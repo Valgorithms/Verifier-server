@@ -17,8 +17,9 @@ use React\Socket\SocketServer;
 use React\Http\Message\ServerRequest;
 use SS14\Endpoints\OAuth2Endpoint as SS14OAuth2Endpoint;
 use VerifierServer\Endpoints\Interfaces\EndpointInterface;
-//use VerifierServer\Endpoints\USPSEndpoint;
+use VerifierServer\Endpoints\FaviconEndpoint;
 use VerifierServer\Endpoints\SS14VerifiedEndpoint;
+//use VerifierServer\Endpoints\USPSEndpoint;
 use VerifierServer\Endpoints\VerifiedEndpoint;
 use VerifierServer\Traits\HttpMethodsTrait;
 
@@ -128,6 +129,7 @@ class Server {
     }
     protected function afterConstruct(): void
     {
+        $this->endpoints['/favicon.ico'] = new FaviconEndpoint(new FaviconEndpoint());
         //$this->endpoints['/usps'] = new USPSEndpoint($_ENV['USPS_USERID'] ?? getenv('USPS_USERID'));
     }
 
