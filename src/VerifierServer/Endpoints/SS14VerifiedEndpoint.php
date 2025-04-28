@@ -167,16 +167,31 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
 
     public function remove(string $discord, string $ss14 = ''): ?array
     {
-        $existingIndex = $this->getIndex($discord, $ss14);
-        if ($existingIndex === false) return null;
-        return $this->removeIndex($existingIndex);
+        return ($existingIndex = $this->getIndex($discord, $ss14)) === false
+            ? null
+            : $this->removeIndex($existingIndex);
     }
 
-    public function getIndex(string $discord, string $ss14 = ''): int|string|false
+    public function fetch(int|string $key, string $value): ?array
     {
         $list = $this->state->getVerifyList();
-        $existingIndex = array_search($discord, array_column($list, 'discord'));
-        if ($ss14 && $existingIndex === false) $existingIndex = array_search($ss14, array_column($list, 'ss14'));
-        return $existingIndex;
+        return ($existingIndex = array_search($value, array_column($list, $key))) === false
+            ? null
+            : $list[$existingIndex] ?? null;
+    }
+    
+    public function getIndex(string $discord = '', string $ss14 = ''): int|string|false
+    {
+        if ($discord === '' && $ss14 === '') return false;
+        $list = $this->state->getVerifyList();
+        if ($discord !== '') {
+            $index = array_search($discord, array_column($list, 'discord'));
+            if ($index !== false) return $index;
+        }
+        if ($ss14 !== '') {
+            $index = array_search($ss14, array_column($list, 'ss14'));
+            if ($index !== false) return $index;
+        }
+        return false;
     }
 }
