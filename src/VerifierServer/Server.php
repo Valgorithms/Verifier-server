@@ -180,7 +180,15 @@ class Server {
                 : Loop::get(),
             fn($request) => $this->handleReact($request)
         )->on('error', fn(Throwable $e) => $this->logError($e, true));
-        $this->socket = new SocketServer("{$this->addr}:{$this->port}", [], $this->loop);
+        $this->socket = new SocketServer(
+            "{$this->addr}:{$this->port}",
+            [
+                'tcp' => [
+                    'so_reuseport' => true
+                ]
+            ],
+            $this->loop
+        );
     }
 
     /**
