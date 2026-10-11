@@ -98,9 +98,14 @@ This project is licensed under the MIT License.
 
 ## Offline verification checks
 
+Run `php scripts/lint.php` to parse all package source, entry points, scripts, and tests.
+CI checks PHP 8.2, 8.3, 8.4, and 8.5.
+
 Run `php vendor/bin/phpunit --bootstrap vendor/autoload.php tests/isolated`.
 These contract tests inject storage that never writes files or opens databases;
-they do not load `.env`, start the server, or contact verification services.
+they do not load `.env`, bind a listening socket, or contact verification services.
+A server loading test constructs the server and routes a synthetic request without
+initializing its network listener.
 The older tests outside this directory use configured storage and are not run by CI.
 
 Run `php -d xdebug.mode=off scripts/benchmark_lookups.php` for a synthetic
