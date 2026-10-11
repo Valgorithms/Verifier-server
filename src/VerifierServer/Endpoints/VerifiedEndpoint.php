@@ -48,6 +48,27 @@ use VerifierServer\PersistentState;
  */
 class VerifiedEndpoint extends Endpoint
 {
+    private ?array $lookupSnapshot = null;
+    private array $lookupColumns = [];
+
+    /** Snapshot comparison also detects changes through SS14's reference accessor. */
+    protected function findIndex(string $column, string $value, ?array $list = null): int|string|false
+    {
+        $list = $list ?? $this->state->getVerifyList();
+        if ($this->lookupSnapshot !== $list) {
+            $this->lookupSnapshot = $list;
+            $this->lookupColumns = [];
+        }
+        if (!array_key_exists($column, $this->lookupColumns)) {
+            $values = [];
+            foreach ($list as $index => $item) {
+                if (array_key_exists($column, $item)) $values[$index] = $item[$column];
+            }
+            $this->lookupColumns[$column] = $values;
+        }
+        return array_search($value, $this->lookupColumns[$column]);
+    }
+
     public function __construct(protected &$state)
     {}
 
@@ -139,11 +160,7 @@ class VerifiedEndpoint extends Endpoint
      */
     protected function post(ServerRequestInterface|string $request, int|string &$response, array &$headers, string &$body, bool $bypass_token = false): void
     {
-        $formData = $request instanceof ServerRequestInterface
-            ? $request->getHeaders()
-            : (is_string($request)
-                ? self::parseHeaders($request)
-                : []);
+        $formData = $this->verificationFields($request);
 
         $methodType = isset($formData['method']) 
             ? strtolower(trim(is_array($formData['method']) ? $formData['method'][0] : $formData['method']))
@@ -207,9 +224,7 @@ class VerifiedEndpoint extends Endpoint
      */
     protected function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$headers, string &$body): void
     {
-        $existingDiscordIndex = array_search($discord, array_column($list, 'discord'));
-        $existingCkeyIndex = array_search($ckey, array_column($list, 'ss13'));
-        if ($existingDiscordIndex !== false || $existingCkeyIndex !== false) {
+        if ($this->findIndex('discord', $discord, $list) !== false || $this->findIndex('ss13', $ckey, $list) !== false) {
             $response = Response::STATUS_FORBIDDEN;
             $headers = ['Content-Type' => 'text/plain'];
             $body = 'Forbidden';
@@ -217,6 +232,7 @@ class VerifiedEndpoint extends Endpoint
         }
 
         $this->add($discord, $ckey);
+        $response = Response::STATUS_OK;
 
         $headers = ['Content-Type' => 'application/json'];
         $headers['Content-Length'] = ($body = $this->__content())
@@ -270,12 +286,12 @@ class VerifiedEndpoint extends Endpoint
         return $this->removeIndex($existingIndex);
     }
 
-    public function getIndex(string $discord, string $ckey = ''): int|string|false
+    public function getIndex(string $discord = '', string $ckey = ''): int|string|false
     {
+        if ($discord === '' && $ckey === '') return false;
         $list = $this->state->getVerifyList();
-        $existingIndex = array_search($ckey, array_column($list, 'ss13'));
-        if ($ckey && $existingIndex === false) $existingIndex = array_search($discord, array_column($list, 'discord'));
-        return $existingIndex;
+        if ($ckey !== '' && ($index = $this->findIndex('ss13', $ckey, $list)) !== false) return $index;
+        return $discord !== '' ? $this->findIndex('discord', $discord, $list) : false;
     }
 
     public function removeIndex(int|string $existingIndex): array
