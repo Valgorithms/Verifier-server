@@ -23,7 +23,7 @@ Verifier-Server is a web server designed to handle BYOND user verification.
     cd Verifier-server
     ```
 
-2. Install dependencies:
+2. Install dependencies (PHP 8.2 or newer):
     ```sh
     composer install
     ```
@@ -95,3 +95,20 @@ To insert a new `ss13` and `discord` record, run the following script:
 ## License
 
 This project is licensed under the MIT License.
+
+## Offline verification checks
+
+Run `php vendor/bin/phpunit --bootstrap vendor/autoload.php tests/isolated`.
+These contract tests inject storage that never writes files or opens databases;
+they do not load `.env`, start the server, or contact verification services.
+The older tests outside this directory use configured storage and are not run by CI.
+
+Run `php -d xdebug.mode=off scripts/benchmark_lookups.php` for a synthetic
+lookup comparison. It uses in-memory lists and performs no persistence or HTTP.
+Lookup columns are cached until the list changes, preserving existing loose
+comparison semantics and original row keys. A snapshot and columns consume
+additional memory; database reads still follow the configured storage behavior.
+
+Verification HTTP requests accept `application/x-www-form-urlencoded` bodies.
+Body fields override corresponding legacy headers. Internal header-string calls
+remain supported. Successful registrations explicitly return HTTP 200.

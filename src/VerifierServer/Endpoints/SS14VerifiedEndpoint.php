@@ -68,11 +68,7 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
      */
     protected function post(ServerRequestInterface|string $request, int|string &$response, array &$headers, string &$body, bool $bypass_token = false): void
     {
-        $formData = $request instanceof ServerRequestInterface
-            ? $request->getHeaders()
-            : (is_string($request)
-                ? self::parseHeaders($request)
-                : []);
+        $formData = $this->verificationFields($request);
 
         $methodType = isset($formData['method']) 
             ? strtolower(trim(is_array($formData['method']) ? $formData['method'][0] : $formData['method']))
@@ -136,9 +132,7 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
      */
     protected function __post(array &$list, string $ss14, string $discord, int|string &$response, array &$headers, string &$body): void
     {
-        $existingDiscordIndex = array_search($discord, array_column($list, 'discord'));
-        $existingSS14Index = array_search($ss14, array_column($list, 'ss14'));
-        if ($existingDiscordIndex !== false || $existingSS14Index !== false) {
+        if ($this->findIndex('discord', $discord, $list) !== false || $this->findIndex('ss14', $ss14, $list) !== false) {
             $response = Response::STATUS_FORBIDDEN;
             $headers = ['Content-Type' => 'text/plain'];
             $body = 'Forbidden';
@@ -146,6 +140,7 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
         }
 
         $this->add($discord, $ss14);
+        $response = Response::STATUS_OK;
         
         $headers = ['Content-Type' => 'application/json'];
         $headers['Content-Length'] = ($body = $this->__content())
@@ -175,23 +170,15 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
     public function fetch(int|string $key, string $value): ?array
     {
         $list = $this->state->getVerifyList();
-        return ($existingIndex = array_search($value, array_column($list, $key))) === false
-            ? null
-            : $list[$existingIndex] ?? null;
+        $index = $this->findIndex((string) $key, $value, $list);
+        return $index === false ? null : $list[$index];
     }
     
     public function getIndex(string $discord = '', string $ss14 = ''): int|string|false
     {
         if ($discord === '' && $ss14 === '') return false;
         $list = $this->state->getVerifyList();
-        if ($discord !== '') {
-            $index = array_search($discord, array_column($list, 'discord'));
-            if ($index !== false) return $index;
-        }
-        if ($ss14 !== '') {
-            $index = array_search($ss14, array_column($list, 'ss14'));
-            if ($index !== false) return $index;
-        }
-        return false;
+        if ($discord !== '' && ($index = $this->findIndex('discord', $discord, $list)) !== false) return $index;
+        return $ss14 !== '' ? $this->findIndex('ss14', $ss14, $list) : false;
     }
 }

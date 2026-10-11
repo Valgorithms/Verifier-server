@@ -33,6 +33,22 @@ trait RequestParserTrait
             []);
     }
 
+    /** Accept form bodies while preserving legacy header-based internal requests. */
+    protected function verificationFields($request): array
+    {
+        if (!$request instanceof \Psr\Http\Message\ServerRequestInterface) {
+            return self::parseHeaders($request);
+        }
+        $fields = array_change_key_case($request->getHeaders(), CASE_LOWER);
+        $contentType = strtolower(trim(explode(';', $request->getHeaderLine('Content-Type'))[0]));
+        if ($contentType === 'application/x-www-form-urlencoded') {
+            parse_str((string) $request->getBody(), $form);
+            foreach ($form as $key => $value) $form[$key] = is_string($value) ? $value : '';
+            $fields = array_replace($fields, $form);
+        }
+        return $fields;
+    }
+
     public function getQueryParams(string $request): array
     {
         return self::__getQueryParams($request);
