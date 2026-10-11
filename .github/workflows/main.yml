@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: ['8.2', '8.4']
+        php: ['8.2', '8.3', '8.4', '8.5']
 
     steps:
     - name: Checkout code
@@ -44,6 +44,9 @@ jobs:
 
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress --no-suggest
+
+    - name: Lint package source and entry points
+      run: php scripts/lint.php
 
     - name: Run tests
       run: ./vendor/bin/phpunit --bootstrap vendor/autoload.php tests/isolated

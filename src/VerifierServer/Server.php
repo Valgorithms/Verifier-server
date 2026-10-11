@@ -174,12 +174,12 @@ class Server {
      */
     private function __initReactHttpServer(?LoopInterface $loop = null): void
     {
-        $this->server = new HttpServer(
+        $this->server = (new HttpServer(
             $this->loop = $loop instanceof LoopInterface
                 ? $loop
                 : Loop::get(),
             fn($request) => $this->handleReact($request)
-        )->on('error', fn(Throwable $e) => $this->logError($e, true));
+        ))->on('error', fn(Throwable $e) => $this->logError($e, true));
         $this->socket = new SocketServer(
             "{$this->addr}:{$this->port}",
             [
