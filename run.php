@@ -24,12 +24,12 @@ $server->setSS14State([
     $envConfig['STORAGE_TYPE'] ?? 'filesystem',
     $envConfig['SS14_JSON_PATH'] ?? 'json/ss14verify.json',
 ]);
-$server->setSS14OAuth2Endpoint(
-    $_ENV['SS14_OAUTH2_CLIENT_ID'] ?? getenv('SS14_OAUTH2_CLIENT_ID'),
-    $_ENV['SS14_OAUTH2_CLIENT_SECRET'] ?? getenv('SS14_OAUTH2_CLIENT_SECRET')
-);
-$server->setDiscordOAuth2Endpoint(
-    $_ENV['dwa_client_id'] ?? getenv('dwa_client_id'),
-    $_ENV['dwa_client_secret'] ?? getenv('dwa_client_secret')
-);
+// OAuth2 web endpoints are optional; they are only registered when both credentials are configured.
+$oauth = static fn(string $key): string => (string) ($_ENV[$key] ?? getenv($key) ?: '');
+if ($oauth('SS14_OAUTH2_CLIENT_ID') !== '' && $oauth('SS14_OAUTH2_CLIENT_SECRET') !== '') {
+    $server->setSS14OAuth2Endpoint($oauth('SS14_OAUTH2_CLIENT_ID'), $oauth('SS14_OAUTH2_CLIENT_SECRET'));
+}
+if ($oauth('dwa_client_id') !== '' && $oauth('dwa_client_secret') !== '') {
+    $server->setDiscordOAuth2Endpoint($oauth('dwa_client_id'), $oauth('dwa_client_secret'));
+}
 $server->start(true); // Start the server and the event loop

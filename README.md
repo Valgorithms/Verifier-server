@@ -48,12 +48,17 @@ Verifier-Server is a web server designed to handle BYOND user verification.
     #DB_OPTIONS=
 
     # MySQL configuration
-    DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=verify_list
-    DB_PORT=3306
-    DB_USERNAME=your_username
-    DB_PASSWORD=your_password
+    #DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=verify_list
+    #DB_PORT=3306
+    #DB_USERNAME=your_username
+    #DB_PASSWORD=your_password
     #DB_OPTIONS={"option1":"value1","option2":"value2"}
     ```
+
+    The `.env` file lives in the repository root regardless of the working
+    directory; variables set in the real environment take precedence over it.
+    The OAuth2 web endpoints (`SS14_OAUTH2_CLIENT_ID`/`SECRET`, `dwa_client_id`/
+    `dwa_client_secret`) are optional and only registered when both halves are set.
 
 ## Usage
 

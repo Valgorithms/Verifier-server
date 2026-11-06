@@ -82,7 +82,7 @@ class OAuth2Authenticator
         
         $this->state = isset($this->sessions[$this->endpoint_name][$this->requesting_ip], $this->sessions[$this->endpoint_name][$this->requesting_ip]['state'])
             ? $this->sessions[$this->endpoint_name][$this->requesting_ip]['state']
-            : $this->sessions[$this->endpoint_name][$this->requesting_ip]['state'] = uniqid();
+            : $this->sessions[$this->endpoint_name][$this->requesting_ip]['state'] = bin2hex(random_bytes(16)); // unguessable CSRF state
 
         if (isset($this->sessions[$this->endpoint_name][$this->requesting_ip]['access_token'])) {
             $this->access_token = $this->sessions[$this->endpoint_name][$this->requesting_ip]['access_token'];
