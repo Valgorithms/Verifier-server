@@ -15,7 +15,9 @@ use React\Http\HttpServer;
 use React\Http\Message\Response;
 use React\Socket\SocketServer;
 use React\Http\Message\ServerRequest;
+use React\Promise\PromiseInterface;
 use SS14\Endpoints\OAuth2Endpoint as SS14OAuth2Endpoint;
+use VerifierServer\Endpoints\Interfaces\AsyncEndpointInterface;
 use VerifierServer\Endpoints\Interfaces\EndpointInterface;
 use VerifierServer\Endpoints\FaviconEndpoint;
 use VerifierServer\Endpoints\SS14VerifiedEndpoint;
@@ -107,9 +109,10 @@ class Server {
     protected string $resolved_ip;
 
     /**
-     * The IP sessions.
-     * 
-     * @var array IP sessions.
+     * OAuth2 browser sessions, `[endpoint name => [session cookie id => session]]`.
+     * The property keeps its historical name; sessions are keyed by cookie, not by IP.
+     *
+     * @var array<string, array<string, array>>
      */
     protected array $ip_sessions = [];
     
@@ -141,6 +144,9 @@ class Server {
     public function init(?LoopInterface $loop = null, bool $stream_socket_server = false): void
     {
         if ($this->running) return;
+        if ($stream_socket_server) {
+            @trigger_error('The stream-socket server mode is deprecated: it reads 1 KiB per request, cannot parse form bodies and does not serve asynchronous endpoints. Use the ReactPHP server.', E_USER_DEPRECATED);
+        }
         $this->initialized = true;
         ($stream_socket_server)
             ? $this->__initStreamSocketServer()
@@ -346,12 +352,22 @@ class Server {
      *
      * @param ServerRequestInterface $client The incoming client request.
      *
-     * @return ResponseInterface The generated HTTP response.
+     * @return ResponseInterface|PromiseInterface<ResponseInterface> The generated HTTP response.
      */
-    private function handleReact(ServerRequestInterface $request): ResponseInterface
+    private function handleReact(ServerRequestInterface $request): ResponseInterface|PromiseInterface
     {
         $method = $request->getMethod();
         $uri = $request->getUri()->getPath();
+
+        $endpoint = $this->getEndpoint($uri);
+        if ($endpoint instanceof AsyncEndpointInterface && !in_array($method, self::DEFAULT_METHODS, true)) {
+            try {
+                $promise = $endpoint->handleAsync($method, $request);
+            } catch (Throwable $e) {
+                return $this->internalError($e);
+            }
+            return $promise->then(null, fn(Throwable $e): ResponseInterface => $this->internalError($e));
+        }
 
         // Defaults
         $response = Response::STATUS_NOT_FOUND;
@@ -362,10 +378,7 @@ class Server {
             $this->route($uri, $method, $request, $response, $headers, $body);
         } catch (Throwable $e) {
             // A failing request must not take the listener down with it.
-            $this->logError($e, false);
-            $response = Response::STATUS_INTERNAL_SERVER_ERROR;
-            $headers = ['Content-Type' => 'text/plain'];
-            $body = 'Internal Server Error';
+            return $this->internalError($e);
         }
 
         return new Response(
@@ -373,6 +386,13 @@ class Server {
             $headers,
             $body
         );
+    }
+
+    /** Logs a request failure and answers 500 without touching the listener. */
+    private function internalError(Throwable $e): ResponseInterface
+    {
+        $this->logError($e, false);
+        return new Response(Response::STATUS_INTERNAL_SERVER_ERROR, ['Content-Type' => 'text/plain'], 'Internal Server Error');
     }
 
     /**
@@ -628,6 +648,8 @@ class Server {
             $this->port,
             $client_id,
             $client_secret,
+            null,
+            $this->loop ?? null
         );
     }
 
@@ -643,6 +665,8 @@ class Server {
             $this->port,
             $client_id,
             $client_secret,
+            null,
+            $this->loop ?? null
         );
     }
 
