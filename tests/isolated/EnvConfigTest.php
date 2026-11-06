@@ -54,7 +54,7 @@ final class EnvConfigTest extends TestCase
     public function testRealEnvironmentOverridesTheFile(): void
     {
         file_put_contents($this->directory . '/.env', "TOKEN=from-file\n");
-        putenv('TOKEN=from-environment');
+        $_SERVER['TOKEN'] = 'from-environment'; // how a real environment variable appears to dotenv
         self::assertSame('from-environment', PersistentState::loadEnvConfig($this->directory)['TOKEN']);
     }
 
