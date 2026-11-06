@@ -48,25 +48,66 @@ use VerifierServer\PersistentState;
  */
 class VerifiedEndpoint extends Endpoint
 {
+    /** Discord user ids are snowflakes: 17 to 20 decimal digits. */
+    public const DISCORD_ID_PATTERN = '/^[0-9]{17,20}$/D';
+    /** A normalised BYOND ckey: lowercase letters and digits only. */
+    public const CKEY_PATTERN = '/^[a-z0-9]{1,256}$/D';
+
     private ?array $lookupSnapshot = null;
     private array $lookupColumns = [];
 
     /** Snapshot comparison also detects changes through SS14's reference accessor. */
-    protected function findIndex(string $column, string $value, ?array $list = null): int|string|false
+    protected function findIndex(string $column, string $value, ?array $list = null, ?callable $normalize = null): int|string|false
     {
         $list = $list ?? $this->state->getVerifyList();
         if ($this->lookupSnapshot !== $list) {
             $this->lookupSnapshot = $list;
             $this->lookupColumns = [];
         }
-        if (!array_key_exists($column, $this->lookupColumns)) {
+        $cacheKey = $normalize ? "$column#normalized" : $column;
+        if (!array_key_exists($cacheKey, $this->lookupColumns)) {
             $values = [];
             foreach ($list as $index => $item) {
-                if (array_key_exists($column, $item)) $values[$index] = $item[$column];
+                if (!array_key_exists($column, $item)) continue;
+                $values[$index] = $normalize && is_string($item[$column]) ? $normalize($item[$column]) : $item[$column];
             }
-            $this->lookupColumns[$column] = $values;
+            $this->lookupColumns[$cacheKey] = $values;
         }
-        return array_search($value, $this->lookupColumns[$column]);
+        return array_search($normalize ? $normalize($value) : $value, $this->lookupColumns[$cacheKey]);
+    }
+
+    /**
+     * Reduces a BYOND key to its ckey form the same way Civilizationbot's
+     * sanitizeInput() and HostedVerificationSource::validate() do, so that
+     * two spellings of one account can never both be registered.
+     */
+    public static function normalizeCkey(string $key): string
+    {
+        return str_replace(['.', '_', '-', '+', ' '], '', strtolower(trim($key)));
+    }
+
+    /**
+     * Validates and canonicalises a record before it is stored.
+     *
+     * @return string|null A human-readable problem, or null when the record is acceptable.
+     *                     `$account` is replaced with its canonical spelling on success.
+     */
+    protected function validateRecord(string $discord, string &$account): ?string
+    {
+        if (preg_match(self::DISCORD_ID_PATTERN, $discord) !== 1) {
+            return 'discord must be a Discord user id (17 to 20 digits)';
+        }
+        $account = self::normalizeCkey($account);
+        if (preg_match(self::CKEY_PATTERN, $account) !== 1) {
+            return 'ckey must be a BYOND key (letters and digits after normalisation)';
+        }
+        return null;
+    }
+
+    /** Index of a record whose account matches `$account` after normalisation, or false. */
+    protected function findAccount(string $account, array $list): int|string|false
+    {
+        return $this->findIndex('ss13', $account, $list, [self::class, 'normalizeCkey']);
     }
 
     public function __construct(protected &$state)
@@ -210,10 +251,11 @@ class VerifiedEndpoint extends Endpoint
     /**
      * Handles the default verification process.
      *
-     * This method checks if the provided `ckey` or `discord` already exists in the list.
-     * If either exists, it sets the response to a 403 Forbidden status.
-     * If neither exists, it adds the new entry to the list, writes the updated list to a JSON file,
-     * updates the state, and sets the response to a 200 OK status.
+     * This method first validates the record (400 Bad Request when the Discord id or ckey
+     * is malformed), then checks if the provided `ckey` or `discord` already exists in the list,
+     * comparing ckeys after normalisation. If either exists, it sets the response to a
+     * 403 Forbidden status. If neither exists, it adds the new entry to the list, writes the
+     * updated list to a JSON file, updates the state, and sets the response to a 200 OK status.
      *
      * @param array  $list          The list of existing entries.
      * @param string $ckey          The ckey to be verified.
@@ -224,7 +266,13 @@ class VerifiedEndpoint extends Endpoint
      */
     protected function __post(array &$list, string $ckey, string $discord, int|string &$response, array &$headers, string &$body): void
     {
-        if ($this->findIndex('discord', $discord, $list) !== false || $this->findIndex('ss13', $ckey, $list) !== false) {
+        if ($problem = $this->validateRecord($discord, $ckey)) {
+            $response = Response::STATUS_BAD_REQUEST;
+            $headers = ['Content-Type' => 'text/plain'];
+            $body = "Bad Request: $problem";
+            return;
+        }
+        if ($this->findIndex('discord', $discord, $list) !== false || $this->findAccount($ckey, $list) !== false) {
             $response = Response::STATUS_FORBIDDEN;
             $headers = ['Content-Type' => 'text/plain'];
             $body = 'Forbidden';
