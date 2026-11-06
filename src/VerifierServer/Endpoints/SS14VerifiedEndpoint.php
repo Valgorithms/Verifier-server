@@ -156,8 +156,7 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
             'ss14' => $ss14,
             'create_time' => date('Y-m-d H:i:s')
         ];
-        $this->state::writeJson($this->state->getJsonPath(), $list);
-        $this->state->setVerifyList($list);
+        $this->state->saveVerifyList($list);
     }
 
     public function remove(string $discord, string $ss14 = ''): ?array
