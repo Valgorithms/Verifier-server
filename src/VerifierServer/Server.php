@@ -179,7 +179,7 @@ class Server {
                 ? $loop
                 : Loop::get(),
             fn($request) => $this->handleReact($request)
-        ))->on('error', fn(Throwable $e) => $this->logError($e, true));
+        ))->on('error', fn(Throwable $e) => $this->logError($e, false));
         $this->socket = new SocketServer(
             "{$this->addr}:{$this->port}",
             [
@@ -270,6 +270,7 @@ class Server {
             return;
         }
 
+        $uri = self::normalizePath($uri);
         $endpoint = null;
         $allowed_methods = (isset($this->endpoints[$uri]) && ($endpoint = $this->endpoints[$uri]) instanceof EndpointInterface)
             ? array_merge($endpoint->getAllowedMethods(), self::DEFAULT_METHODS)
@@ -288,9 +289,21 @@ class Server {
 
         //TODO: Check if the method is implemented by the endpoint
 
-        $endpoint
-            ? $endpoint->handle($method, $request, $response, $headers, $body)
-            : $this->logError(new Exception("Endpoint not found: $uri"), false);
+        if (! $endpoint) {
+            if (isset($this->logger)) $this->logger->debug("Endpoint not found: $uri");
+            return;
+        }
+        $endpoint->handle($method, $request, $response, $headers, $body);
+    }
+
+    /**
+     * Collapses a trailing slash so that `/verified/` and `/verified` reach the same endpoint.
+     * Civilizationbot's default verify_url ends with a slash.
+     */
+    public static function normalizePath(string $uri): string
+    {
+        $trimmed = rtrim($uri, '/');
+        return $trimmed === '' ? '/' : $trimmed;
     }
 
     /**
@@ -314,6 +327,7 @@ class Server {
         bool $bypass_token = false
     ): void
     {
+        $uri = self::normalizePath($uri);
         if (isset($this->endpoints[$uri]) && $this->endpoints[$uri] instanceof EndpointInterface) {
             $this->endpoints[$uri]->handle($method, $request, $response, $headers, $body, $bypass_token);
         }
@@ -321,6 +335,7 @@ class Server {
 
     public function getEndpoint(string $uri): ?EndpointInterface
     {
+        $uri = self::normalizePath($uri);
         return (isset($this->endpoints[$uri]) && $this->endpoints[$uri] instanceof EndpointInterface)
             ? $this->endpoints[$uri]
             : null;
@@ -342,8 +357,16 @@ class Server {
         $response = Response::STATUS_NOT_FOUND;
         $headers = ['Content-Type' => 'text/plain'];
         $body = "Not Found";
-        
-        $this->route($uri, $method, $request, $response, $headers, $body);
+
+        try {
+            $this->route($uri, $method, $request, $response, $headers, $body);
+        } catch (Throwable $e) {
+            // A failing request must not take the listener down with it.
+            $this->logError($e, false);
+            $response = Response::STATUS_INTERNAL_SERVER_ERROR;
+            $headers = ['Content-Type' => 'text/plain'];
+            $body = 'Internal Server Error';
+        }
 
         return new Response(
             $response,
@@ -372,7 +395,7 @@ class Server {
             throw new Exception("Failed to get client name");
         }
         //var_dump($sender);
-        $requester = explode($sender, ':');
+        $requester = explode(':', $sender);
 
         $client_headers = explode(PHP_EOL, trim($request)) ?: [];
         $firstLine = explode(' ', array_shift($client_headers));
@@ -432,13 +455,11 @@ class Server {
     /**
      * Logs an error message with details about the exception.
      *
-     * @param Exception $e     The exception to log.
+     * @param Throwable $e     The exception to log.
      * @param bool      $fatal Optional. Indicates whether the error is fatal. Defaults to false.
      *                              If true, the server will stop after logging the error.
-     *
-     * @return string
      */
-    public function logError(Exception $e, bool $fatal = false): void
+    public function logError(Throwable $e, bool $fatal = false): void
     {
         if ($fatal) $this->close();
         if (isset($this->logger)) $this->logger->warning(sprintf(
@@ -517,7 +538,7 @@ class Server {
     }
     public function getSS14State(): ?SS14PersistentState
     {
-        return $this->SS14state ?? null;
+        return $this->ss14state ?? null;
     }
     
     public function getSessions(): array
