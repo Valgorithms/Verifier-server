@@ -175,7 +175,7 @@ class VerifiedEndpoint extends Endpoint
             ? trim(is_array($formData['token']) ? $formData['token'][0] : $formData['token'])
             : '';
         
-        if (!$bypass_token && ($this->state->getToken() === 'changeme' || $token !== $this->state->getToken())) {
+        if (!$bypass_token && ($this->state->getToken() === 'changeme' || !hash_equals($this->state->getToken(), $token))) {
             $response = Response::STATUS_UNAUTHORIZED;
             $headers = ['Content-Type' => 'text/plain'];
             $body = 'Unauthorized';
