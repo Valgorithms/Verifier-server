@@ -51,13 +51,7 @@ class SS14PersistentState extends PersistentState
      */
     protected function initializeDatabase(): void
     {
-        $env = self::loadEnvConfig();
-        $this->pdo = new PDO(
-            $env['DB_DSN'],
-            $env['DB_USERNAME'],
-            $env['DB_PASSWORD'],
-            isset($env['DB_OPTIONS']) ? json_decode($env['DB_OPTIONS'], true) : null
-        );
+        $this->pdo = $this->connect();
         if (strpos($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME), 'mysql') !== false) {
             if ($this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->table_name} (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -102,7 +96,8 @@ class SS14PersistentState extends PersistentState
         if ($result === false) {
             throw new PDOException("Failed to fetch data: " . implode(", ", $this->pdo->errorInfo()));
         }
-        return $this->verifyList = $result;
+        $this->verifyList = $result;
+        return $this->verifyList;
     }
 
     /**
@@ -122,16 +117,13 @@ class SS14PersistentState extends PersistentState
     public function setVerifyList(array $list, bool $write = true): void
     {
         if ($write && $this->storageType !== 'filesystem') {
-            if ($this->pdo->exec("DELETE FROM {$this->table_name}") === false) {
-                throw new PDOException("Failed to delete from {$this->table_name}: " . implode(", ", $this->pdo->errorInfo()));
-            }
-            if (($stmt = $this->pdo->prepare("INSERT INTO {$this->table_name} (discord, ss14, create_time) VALUES (:discord, :ss14, :create_time)")) === false) {
-                throw new PDOException("Failed to prepare statement.");
-            }
-            foreach ($list as $item) if (!$stmt->execute($item)) {
-                throw new PDOException("Failed to execute statement.");
-            }
+            $this->rewriteTable($list);
         }
         $this->verifyList = $list;
+    }
+
+    protected function recordColumns(): array
+    {
+        return ['discord', 'ss14', 'create_time'];
     }
 }

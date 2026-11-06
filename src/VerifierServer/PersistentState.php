@@ -67,13 +67,7 @@ class PersistentState
      */
     protected function initializeDatabase(): void
     {
-        $env = self::loadEnvConfig();
-        $this->pdo = new PDO(
-            $env['DB_DSN'],
-            $env['DB_USERNAME'],
-            $env['DB_PASSWORD'],
-            isset($env['DB_OPTIONS']) ? json_decode($env['DB_OPTIONS'], true) : null
-        );
+        $this->pdo = $this->connect();
         if (strpos($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME), 'mysql') !== false) {
             if ($this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->table_name} (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -95,6 +89,44 @@ class PersistentState
                 throw new PDOException("Failed to create table: " . implode(", ", $errorInfo));
             }
         }
+    }
+
+    /**
+     * Opens the database connection from the environment configuration.
+     * Overridden by tests to inject an in-memory connection.
+     */
+    protected function connect(): PDO
+    {
+        $env = self::loadEnvConfig();
+        return new PDO(
+            $env['DB_DSN'],
+            $env['DB_USERNAME'],
+            $env['DB_PASSWORD'],
+            isset($env['DB_OPTIONS']) && $env['DB_OPTIONS'] !== '' ? json_decode($env['DB_OPTIONS'], true) : null
+        );
+    }
+
+    /**
+     * Columns persisted for each record. Rows read back from a database also carry `id`,
+     * which must not be fed back into the insert statement.
+     */
+    protected function recordColumns(): array
+    {
+        return ['ss13', 'discord', 'create_time'];
+    }
+
+    /**
+     * Persists a replacement list through the configured storage and updates the cache.
+     * Filesystem storage writes the JSON file; database storage rewrites the table.
+     */
+    public function saveVerifyList(array $list): void
+    {
+        if ($this->storageType === 'filesystem') {
+            static::writeJson($this->getJsonPath(), $list);
+            $this->setVerifyList($list, false);
+            return;
+        }
+        $this->setVerifyList($list, true);
     }
 
     /**
@@ -142,17 +174,40 @@ class PersistentState
     public function setVerifyList(array $list, bool $write = true): void
     {
         if ($write && $this->storageType !== 'filesystem') {
+            $this->rewriteTable($list);
+        }
+        $this->verifyList = $list;
+    }
+
+    /**
+     * Replaces every row of the table inside one transaction with only the record columns.
+     *
+     * @throws PDOException If any statement fails; the transaction is rolled back.
+     */
+    protected function rewriteTable(array $list): void
+    {
+        $columns = $this->recordColumns();
+        $placeholders = implode(', ', array_map(fn($column) => ":$column", $columns));
+        $this->pdo->beginTransaction();
+        try {
             if ($this->pdo->exec("DELETE FROM {$this->table_name}") === false) {
                 throw new PDOException("Failed to delete from {$this->table_name}: " . implode(", ", $this->pdo->errorInfo()));
             }
-            if (($stmt = $this->pdo->prepare("INSERT INTO {$this->table_name} (ss13, discord, create_time) VALUES (:ss13, :discord, :create_time)")) === false) {
+            if (($stmt = $this->pdo->prepare("INSERT INTO {$this->table_name} (" . implode(', ', $columns) . ") VALUES ($placeholders)")) === false) {
                 throw new PDOException("Failed to prepare statement.");
             }
-            foreach ($list as $item) if (!$stmt->execute($item)) {
-                throw new PDOException("Failed to execute statement.");
+            foreach ($list as $item) {
+                $row = [];
+                foreach ($columns as $column) $row[$column] = isset($item[$column]) ? (string) $item[$column] : null;
+                if (!$stmt->execute($row)) {
+                    throw new PDOException("Failed to execute statement.");
+                }
             }
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
         }
-        $this->verifyList = $list;
     }
 
     /**
@@ -172,7 +227,16 @@ class PersistentState
      */
     public function getJsonPath(): string
     {
-        return getcwd() . '/' . $this->json_path;
+        return self::isAbsolutePath($this->json_path)
+            ? $this->json_path
+            : getcwd() . '/' . $this->json_path;
+    }
+
+    /** True for `/path`, `C:\path`, `C:/path` and `\\server\share` paths. */
+    public static function isAbsolutePath(string $path): bool
+    {
+        return $path !== ''
+            && ($path[0] === '/' || $path[0] === '\\' || preg_match('~^[A-Za-z]:[\\\\/]~', $path) === 1);
     }
 
     /**

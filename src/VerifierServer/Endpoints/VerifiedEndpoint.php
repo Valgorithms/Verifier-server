@@ -275,8 +275,7 @@ class VerifiedEndpoint extends Endpoint
             'ss13' => $ckey,
             'create_time' => date('Y-m-d H:i:s')
         ];
-        $this->state::writeJson($this->state->getJsonPath(), $list);
-        $this->state->setVerifyList($list);
+        $this->state->saveVerifyList($list);
     }
 
     public function remove(string $discord, string $ckey = ''): ?array
@@ -298,8 +297,7 @@ class VerifiedEndpoint extends Endpoint
     {
         $list = $this->state->getVerifyList();
         $splice = array_splice($list, (int)$existingIndex, 1);
-        $this->state::writeJson($this->state->getJsonPath(), $list);
-        $this->state->setVerifyList($list);
+        $this->state->saveVerifyList($list);
         return $splice;
     }
 
