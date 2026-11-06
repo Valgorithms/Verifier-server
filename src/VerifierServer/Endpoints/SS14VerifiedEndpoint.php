@@ -50,6 +50,24 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
     public function __construct(protected &$state)
     {}
 
+    /** SS14 user names keep their spelling; they only need to be printable and bounded. */
+    protected function validateRecord(string $discord, string &$account): ?string
+    {
+        if (preg_match(self::DISCORD_ID_PATTERN, $discord) !== 1) {
+            return 'discord must be a Discord user id (17 to 20 digits)';
+        }
+        $account = trim($account);
+        if ($account === '' || strlen($account) > 256 || preg_match('/[\x00-\x1F\x7F]/', $account) === 1) {
+            return 'ss14 must be a printable user name of at most 256 bytes';
+        }
+        return null;
+    }
+
+    protected function findAccount(string $account, array $list): int|string|false
+    {
+        return $this->findIndex('ss14', $account, $list);
+    }
+
     /**
      * Handles POST requests by parsing the request data and performing actions based on the method type.
      *
@@ -132,7 +150,13 @@ class SS14VerifiedEndpoint extends VerifiedEndpoint
      */
     protected function __post(array &$list, string $ss14, string $discord, int|string &$response, array &$headers, string &$body): void
     {
-        if ($this->findIndex('discord', $discord, $list) !== false || $this->findIndex('ss14', $ss14, $list) !== false) {
+        if ($problem = $this->validateRecord($discord, $ss14)) {
+            $response = Response::STATUS_BAD_REQUEST;
+            $headers = ['Content-Type' => 'text/plain'];
+            $body = "Bad Request: $problem";
+            return;
+        }
+        if ($this->findIndex('discord', $discord, $list) !== false || $this->findAccount($ss14, $list) !== false) {
             $response = Response::STATUS_FORBIDDEN;
             $headers = ['Content-Type' => 'text/plain'];
             $body = 'Forbidden';

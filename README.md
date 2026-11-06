@@ -68,6 +68,53 @@ Verifier-Server is a web server designed to handle BYOND user verification.
 
 - `GET /verified`: Retrieve the list of verified users.
 - `POST /verified`: Add or delete a verified user. Requires a valid token.
+- `GET /ss14verified` and `POST /ss14verified`: the same contract for Space Station 14
+  accounts, with an `ss14` field instead of `ckey`.
+
+A trailing slash is accepted (`/verified/`), and `/` is an alias of `/verified`.
+
+## HTTP contract
+
+This is the contract [Civilizationbot](https://github.com/Valgorithms/Civilizationbot)
+relies on for `approveme`; keep it backward compatible.
+
+### Records
+
+```json
+[{"discord": "123456789012345678", "ss13": "alice", "create_time": "2026-01-01 12:00:00"}]
+```
+
+Each record links exactly one Discord user id to one BYOND ckey. A `ckey` is
+stored in its normalised form: lowercased, with `.`, `_`, `-`, `+` and spaces
+removed, which is how BYOND and the bot compare keys.
+
+### `POST /verified`
+
+Body: `application/x-www-form-urlencoded` (the legacy `Field: value` header
+form is still accepted for in-process callers). Fields:
+
+| Field     | Required | Meaning |
+| --------- | -------- | ------- |
+| `token`   | yes      | Must equal the configured `TOKEN`. |
+| `discord` | insert   | Discord user id, 17 to 20 digits. |
+| `ckey`    | insert   | BYOND key, normalised before storage. |
+| `method`  | no       | `delete` removes the record matching `ckey`, else `discord`. Anything else inserts. |
+
+Status codes:
+
+| Status | Meaning |
+| ------ | ------- |
+| 200    | Inserted (body: the full list) or deleted (body: the removed records). |
+| 400    | `discord` or `ckey` is malformed. Nothing was stored. |
+| 401    | Missing or wrong `token`, or the server still uses the default token. |
+| 403    | The Discord id or the (normalised) ckey is already registered. |
+| 404    | `delete` found no matching record. |
+| 405    | Unsupported HTTP method. |
+
+### `GET /verified`
+
+Returns the full list as JSON. There is no read token; do not host the
+server on a public interface unless that is intended.
 
 ## Running Tests
 
