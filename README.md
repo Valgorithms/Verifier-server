@@ -13,7 +13,10 @@ Verifier-Server is a web server designed to handle BYOND user verification.
 - Configurable via `.env` file.
 - Logger mode for detailed request and response logging.
 - Graceful shutdown support on all systems with ReactPHP.
-- Graceful shutdown support on non-Windows systems with `pcntl` extension when not leveraging ReactPHP.
+- Optional Discord (`/dwa`) and Space Station 14 (`/ss14wa`) OAuth2 login endpoints with
+  cookie-based browser sessions and non-blocking provider calls.
+- A legacy stream-socket mode (`init(null, true)`) remains for compatibility but is deprecated:
+  it reads 1 KiB per request, cannot parse form bodies and does not serve the OAuth2 endpoints.
 
 ## Installation
 
@@ -120,6 +123,21 @@ Status codes:
 
 Returns the full list as JSON. There is no read token; do not host the
 server on a public interface unless that is intended.
+
+## OAuth2 web endpoints
+
+`/dwa` (Discord) and `/ss14wa` (Space Station 14) run the authorization-code
+flow for a browser: `?login` redirects to the provider, the provider returns
+to `?code=…&state=…`, `?user` returns the cached profile as JSON, `?remove`
+revokes the token and `?logout` forgets the session.
+
+The browser is identified by the `verifier_session` cookie (random id,
+HttpOnly, SameSite=Lax, 24 h idle expiry), which both endpoints share so one
+browser's Discord and SS14 logins are stored under the same key:
+`Server::getSessions()[<endpoint>][<session id>]`. Nothing is keyed by client
+IP. Provider calls use ReactPHP's `Browser` with a 10 s timeout and never
+block the event loop; the in-process `handleEndpoint()` adapter serves only
+requests that need no provider round trip and answers 503 otherwise.
 
 ## Running Tests
 

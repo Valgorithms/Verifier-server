@@ -20,26 +20,15 @@ class OAuth2Authenticator extends __OAuth2Authenticator
     protected string $revocation_endpoint           = '/connect/revocation';
 
     public function __construct(
-        $request,
-        protected array &$sessions,
+        callable $http,
         string $resolved_ip,
         string $web_address,
         int $http_port,
-        protected string $client_id,
-        protected string $client_secret,
-        protected string $endpoint_name = 'ss14wa',
-        protected string $scope = 'openid profile email'
+        string $client_id,
+        string $client_secret,
+        string $endpoint_name = 'ss14wa',
+        string $scope = 'openid profile email'
     ) {
-        parent::__construct(
-            $request,
-            $sessions,
-            $resolved_ip,
-            $web_address,
-            $http_port,
-            $client_id,
-            $client_secret,
-            $endpoint_name,
-            $scope
-        );
+        parent::__construct($http, $resolved_ip, $web_address, $http_port, $client_id, $client_secret, $endpoint_name, $scope);
     }
 }
