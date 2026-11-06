@@ -239,57 +239,70 @@ class PersistentState
             && ($path[0] === '/' || $path[0] === '\\' || preg_match('~^[A-Za-z]:[\\\\/]~', $path) === 1);
     }
 
+    /** Keys returned by loadEnvConfig() with their defaults when absent from the environment. */
+    public const ENV_DEFAULTS = [
+        'HOST_ADDR' => '127.0.0.1',
+        'HOST_PORT' => '8080',
+        'TOKEN' => 'changeme',
+        'STORAGE_TYPE' => 'filesystem',
+        'JSON_PATH' => 'json/verify.json',
+        'SS14_JSON_PATH' => 'json/ss14verify.json',
+        'DB_DSN' => '',
+        'DB_PORT' => '',
+        'DB_USERNAME' => '',
+        'DB_PASSWORD' => '',
+        'DB_OPTIONS' => '',
+    ];
+
     /**
-     * Loads environment configuration from a .env file. 
-     * If the .env file does not exist, it creates one with default values.
-     * 
-     * @return array The environment configuration as an associative array.
+     * Loads environment configuration from the `.env` file in `$directory`
+     * (the repository root by default). If the file does not exist, it is
+     * created with default values. Variables already present in the real
+     * environment take precedence over the file.
+     *
+     * @return array The environment configuration as an associative array
+     *               with every key of ENV_DEFAULTS present.
      * @throws Exception If the TOKEN is 'changeme' and the HOST_ADDR is not '127.0.0.1'.
-     * 
-     * After loading the .env file, it checks if the TOKEN is 'changeme' and the HOST_ADDR is not '127.0.0.1'.
-     * If this condition is met, the script terminates with an error message.
-     * 
      */
-    public static function loadEnvConfig(): array
+    public static function loadEnvConfig(?string $directory = null): array
     {
-        if (! file_exists(".env")) {
-            file_put_contents(".env", 
-                "HOST_ADDR=127.0.0.1" . PHP_EOL . 
-                "HOST_PORT=8080" . PHP_EOL . 
-                "TOKEN=changeme" . PHP_EOL . 
-                "STORAGE_TYPE=filesystem" . PHP_EOL . 
+        $directory = $directory ?? dirname(__DIR__, 2);
+        $file = rtrim($directory, '/\\') . DIRECTORY_SEPARATOR . '.env';
+        if (! file_exists($file)) {
+            file_put_contents($file,
+                "HOST_ADDR=127.0.0.1" . PHP_EOL .
+                "HOST_PORT=8080" . PHP_EOL .
+                "TOKEN=changeme" . PHP_EOL .
+                "STORAGE_TYPE=filesystem" . PHP_EOL .
                 "JSON_PATH=json/verify.json" . PHP_EOL .
-                "# SQLite configuration" . PHP_EOL . 
-                "#DB_DSN=sqlite:verify.db" . PHP_EOL . 
-                "#DB_USERNAME=" . PHP_EOL . 
-                "#DB_PASSWORD=" . PHP_EOL . 
-                "#DB_OPTIONS=" . PHP_EOL . 
-                "# MySQL configuration" . PHP_EOL . 
-                "DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=verify_list" . PHP_EOL . 
-                "DB_PORT=3306" . PHP_EOL . 
-                "DB_USERNAME=your_username" . PHP_EOL . 
-                "DB_PASSWORD=your_password" . PHP_EOL . 
-                "#DB_OPTIONS={\"option1\":\"value1\",\"option2\":\"value2\"}"
+                "SS14_JSON_PATH=json/ss14verify.json" . PHP_EOL .
+                "# SQLite configuration" . PHP_EOL .
+                "#DB_DSN=sqlite:verify.db" . PHP_EOL .
+                "#DB_USERNAME=" . PHP_EOL .
+                "#DB_PASSWORD=" . PHP_EOL .
+                "#DB_OPTIONS=" . PHP_EOL .
+                "# MySQL configuration" . PHP_EOL .
+                "#DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=verify_list" . PHP_EOL .
+                "#DB_PORT=3306" . PHP_EOL .
+                "#DB_USERNAME=your_username" . PHP_EOL .
+                "#DB_PASSWORD=your_password" . PHP_EOL .
+                "#DB_OPTIONS={\"option1\":\"value1\",\"option2\":\"value2\"}" . PHP_EOL
             );
         }
 
-        $dotenv = Dotenv::createImmutable(__DIR__ . '\\..\\..\\');
-        $dotenv->load();
+        $loaded = Dotenv::createImmutable($directory)->load();
 
-        $env = $_ENV;
-        if ($env['TOKEN'] === 'changeme' && $env['HOST_ADDR'] !== '127.0.0.1') {
-            die("Cannot use default token with non-localhost address! ");
+        $env = [];
+        foreach (self::ENV_DEFAULTS as $key => $default) {
+            $value = $_ENV[$key] ?? $_SERVER[$key] ?? null;
+            if ($value === null) $value = getenv($key);
+            if ($value === false) $value = $loaded[$key] ?? null;
+            $env[$key] = $value === null ? $default : (string) $value;
         }
-        return [
-            'HOST_ADDR' => $env['HOST_ADDR'],
-            'HOST_PORT' => $env['HOST_PORT'],
-            'TOKEN' => $env['TOKEN'],
-            'DB_DSN' => $env['DB_DSN'],
-            'DB_PORT' => $env['DB_PORT'],
-            'DB_USERNAME' => $env['DB_USERNAME'],
-            'DB_PASSWORD' => $env['DB_PASSWORD'],
-            'DB_OPTIONS' => $env['DB_OPTIONS'] ?? ''
-        ];
+        if ($env['TOKEN'] === 'changeme' && $env['HOST_ADDR'] !== '127.0.0.1') {
+            throw new Exception('Cannot use default token with non-localhost address!');
+        }
+        return $env;
     }
 
     /**
